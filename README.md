@@ -1,82 +1,149 @@
 <div align="center">
 
 # ⚡ ezysh
-**The aesthetic, blazing-fast command palette & alias launcher for your terminal.**
+### *The aesthetic, intuitive command palette & alias launcher for your terminal.*
 
+[![CI](https://github.com/intuezy/ezysh/actions/workflows/ci.yml/badge.svg)](https://github.com/intuezy/ezysh/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
-[![Shell](https://img.shields.io/badge/Shell-Zsh%20%7C%20Bash%20%7C%20Fish-blue.svg)]()
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-black.svg)]()
+[![Shell: Zsh | Bash | Fish](https://img.shields.io/badge/Shell-Zsh%20%7C%20Bash%20%7C%20Fish-blue.svg)]()
+[![Platform: Linux | macOS](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-black.svg)]()
 
-*Stop forgetting your complex one-liners, aliases, and shell recipes. Jump into your personal command palette with `Ctrl + K`.*
+*Stop forgetting your complex one-liners, aliases, and shell recipes. Jump into your personal command palette with **`Ctrl + K`**.*
+
+<br/>
+
+```text
+┌─ ⚡ ezysh ───────────────────────────────────────────────────────────────┐
+│                                                                 213/213│
+│                                           │                              │
+│ ❯ [Docker]   docker-clean-all             │   🏷  CATEGORY                │
+│   [Git]      case-git-undo-commit         │   Docker                     │
+│   [Network]  case-kill-port <port>        │                              │
+│   [Node]     node-clean-install           │   ⚡ COMMAND                  │
+│   [Database] prisma-studio                │   docker system prune -af    │
+│   [API]      api-post-json <url>          │   --volumes                  │
+│   [Linux]    disk-usage-top               │                              │
+│   [Forensics]case-proc-deleted-running    │   ℹ  DESCRIPTION              │
+│                                           │   Bebaskan puluhan GB disk   │
+│                                           │   dari cache & sampah docker │
+└───────────────────────────────────────────┴──────────────────────────────┘
+```
 
 </div>
 
 ---
 
-## ✨ Features
+## 🌟 Why ezysh?
 
-- **⚡ Instant Fuzzy Search**: Fuzzy-find any command, shell alias, or recipe in less than `1ms`.
-- **🏷 Category-First Filtering**: Type `docker`, `network`, `git`, `forensics`, `linux`, or `case` to filter commands by domain immediately.
-- **🪄 Interactive Parameter Replacement**: If a command has `<port>`, `<url>`, `<branch>`, `ezysh` prompts you to fill it in before injecting to your prompt.
-- **🔄 Auto-Syncs with Shell**: Automatically indexes all aliases and comments from your `~/.zshrc`, `~/.bashrc`, or Fish configs.
-- **✨ Safe Execution**: Injects directly into your active ZLE prompt without executing blindly, so you can inspect/modify before pressing Enter.
-- **🌸 Deep Space Minimalist Palette**: Clean Japanese typography, zero clunky borders, pixel-perfect preview cards.
-- **➕ Quick Add Snippets**: Add new commands from anywhere via `ezy --add`.
+Terminal productivity shouldn't mean memorizing hundreds of obscure flags and piped commands. `ezysh` turns your shell into a modern, aesthetic IDE-like command palette:
 
----
-
-## 📦 Curated Built-in Suites
-
-`ezysh` comes out of the box with over **190+ production-grade commands and recipes**:
-
-1. **🐳 `[Docker]`**: System prune, bulk stop/rm, instant container shell, live resource stats, IP inspect.
-2. **📦 `[Git]`**: Undo last commit, emergency workspace discard, search history by code changes, prune merged branches.
-3. **🔌 `[Network]`**: Port killing, DNS hierarchy trace, multi-resolver benchmark, SSL expiry check, live traffic sniffing.
-4. **🔍 `[Forensics]`**: Fileless malware detection, deleted running binaries, IoC extraction, crontab persistence audit, SHA256 trees.
-5. **🐧 `[Linux]`**: Disk hogs locator, permission recovery, systemd error filters, clean config reader, live logs.
-6. **🎯 `[Cases]`**: End-to-end multi-pipe recipes solving real-world scenarios.
+- **⚡ Sub-Millisecond Search**: Powered by `fzf` with zero latency.
+- **🏷 Category-First Filtering**: Type `docker`, `git`, `network`, `node`, `database`, `api`, or `linux` to filter instantly.
+- **🪄 Interactive Parameter Prompts**: Commands with `<port>`, `<url>`, `<branch>`, or `<name>` prompt you for input before injecting into the shell.
+- **🔄 Zero-Config Shell Auto-Sync**: Automatically reads and indexes all aliases and comments from your `~/.zshrc`, `~/.bashrc`, or Fish configs.
+- **🛡 Safe Injection**: Injects commands directly into your prompt buffer so you can inspect/tweak them before hitting `Enter`.
+- **🌸 Deep Space Palette**: Clean typography, pixel-perfect borders, and syntax-safe preview cards.
+- **➕ Quick Add Snippets**: Add new personal commands on the fly via `ezy --add`.
 
 ---
 
-## 🚀 Quick Install
+## 📦 Curated Built-in Suites (210+ Production Recipes)
 
+| Category | Highlights & Scenarios |
+| :--- | :--- |
+| **🐳 `[Docker]`** | System prune, bulk stop/rm, instant container shell, live resource stats, inspect IP |
+| **📦 `[Git]`** | Undo last commit, emergency workspace discard, search history by code changes, prune merged branches |
+| **🔌 `[Network]`** | Port killing, DNS hierarchy trace, multi-resolver benchmark, SSL expiry check, live traffic sniffing |
+| **🟢 `[Node]`** | Nuke & reinstall dependencies, kill hung dev servers, detect unused packages, outdated check |
+| **🗄️ `[Database]`** | Prisma studio, migrate, db push, PostgreSQL dump/restore, Redis cache flush |
+| **🌐 `[API]`** | Pretty JSON POST testing, Bearer token requests, TTFB latency measurement |
+| **🔍 `[Forensics]`** | Fileless malware detection, deleted running binaries, IoC extraction, crontab persistence audit |
+| **🐧 `[Linux]`** | Disk hogs locator, permission recovery, systemd error filters, clean config reader, live logs |
+| **🎯 `[Cases]`** | End-to-end multi-pipe recipes solving complex real-world workflows |
+
+---
+
+## 🚀 Installation
+
+### 1. One-Line Automated Installer (Recommended)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/intuezy/ezysh/main/install.sh | bash
 ```
 
-Or clone manually:
+---
+
+### 2. Manual Installation
+
+#### Zsh (Default / Oh-My-Zsh / Zinit)
 ```bash
 git clone https://github.com/intuezy/ezysh.git ~/.ezysh
-mkdir -p ~/.local/bin
-ln -s ~/.ezysh/bin/ezysh ~/.local/bin/ezysh
-ln -s ~/.ezysh/bin/ezysh ~/.local/bin/ezy
+echo "source ~/.ezysh/ezysh.plugin.zsh" >> ~/.zshrc
+source ~/.zshrc
 ```
 
-Add to your `~/.zshrc`:
+*Using Oh-My-Zsh custom plugins:*
 ```bash
-source ~/.ezysh/ezysh.plugin.zsh
+git clone https://github.com/intuezy/ezysh.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/ezysh
+# Add 'ezysh' to plugins=(... ezysh) in your ~/.zshrc
+```
+
+#### Bash
+```bash
+git clone https://github.com/intuezy/ezysh.git ~/.ezysh
+echo "source ~/.ezysh/ezysh.plugin.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+#### Fish
+```bash
+git clone https://github.com/intuezy/ezysh.git ~/.ezysh
+ln -s ~/.ezysh/ezysh.fish ~/.config/fish/conf.d/ezysh.fish
 ```
 
 ---
 
 ## ⌨️ Keybindings & Usage
 
-| Trigger | Action |
+| Shortcut / Command | Action |
 | :--- | :--- |
 | **`Ctrl + K`** | Open `ezysh` interactive command palette |
-| **`Ctrl + Space`** | Alternative keybinding for opening `ezysh` |
-| **`ezy` / `ezysh`** | Open palette directly from terminal |
-| **`ezy --add <name> <cmd> <desc> [cat]`** | Quick add a new snippet to your database |
-| **`ezy --sync`** | Manually force sync aliases & defaults |
+| **`Ctrl + Space`** | Alternative keybinding to launch palette |
+| **`ezy` / **`ezysh`** | Launch palette from shell prompt |
+| **`ezy --add <name> <cmd> <desc> [cat]`** | Quick add a new command snippet |
+| **`ezy --sync`** | Force re-index shell aliases & defaults |
 | **`ezy --edit`** | Open `custom.tsv` in your default `$EDITOR` |
+| **`ezy --list`** | Print entire commands database to stdout |
 
 ---
 
-## 💡 Quick Add Example
+## 💡 Adding Custom Commands
 
+### Via CLI:
 ```bash
-ezy --add "deploy-prod" "git push origin main && ./deploy.sh" "Deploy master branch to production" "DevOps"
+ezy --add "deploy-prod" "./deploy.sh --prod" "Deploy main branch to production" "DevOps"
 ```
+
+### Via Config File (`~/.config/ezysh/custom.tsv`):
+```tsv
+deploy-prod	./deploy.sh --prod	[DevOps] Deploy main branch to production
+my-script <target>	python3 script.py --target <target>	[Python] Run automation script
+```
+*Run `ezy --sync` after editing.*
+
+---
+
+## 📋 Requirements
+- `fzf` (Fuzzy finder)
+- `python3` (Safe preview card renderer)
+- `zsh`, `bash`, or `fish`
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether you'd like to propose a new command recipe, fix a bug, or add shell integrations:
+1. Check out our **[Contributing Guidelines](CONTRIBUTING.md)**.
+2. Propose new command recipes using our **[Command Proposal Template](https://github.com/intuezy/ezysh/issues/new?template=command_proposal.md)**.
 
 ---
 
