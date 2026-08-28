@@ -5,7 +5,7 @@
 # License: MIT
 # ==============================================================================
 
-VERSION="1.3.1"
+VERSION="1.4.0"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
 DB_FILE="$CONFIG_DIR/commands.tsv"
 CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
@@ -34,7 +34,6 @@ name = parts[1] if len(parts) > 1 else "-"
 cmd = parts[2] if len(parts) > 2 else "-"
 desc = parts[3] if len(parts) > 3 else "-"
 
-# Clean category tag
 clean_cat = cat.replace("[", "").replace("]", "").strip()
 
 print(f"\033[1;35m  🏷  CATEGORY\033[0m")
@@ -87,7 +86,6 @@ def add_entry(cat, name, cmd, desc):
 
 # ── 1. Curated Gold-Standard Defaults: [Network] Suite ──
 network_defaults = [
-    # ── Real-World Case & Pipeline Combinations ──
     ("case-kill-port <port>", "kill -9 $(lsof -t -i :<port>)", "Otomatis cari PID & paksa matikan proses yang menduduki port"),
     ("case-top-connected-ips", "ss -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10", "Deteksi Top 10 IP koneksi terbanyak ke server (Investigasi DDoS/Traffic)"),
     ("case-dns-compare-resolvers <domain>", "for dns in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do echo -ne \"DNS $dns: \\t\"; dig @$dns +short <domain> | tr '\\n' ' '; echo \"\"; done", "Uji propagasi DNS ke 4 provider publik (Cloudflare, Google, Quad9, OpenDNS)"),
@@ -100,14 +98,12 @@ network_defaults = [
     ("case-ssh-background-tunnel <local_port> <remote_port> <user@host>", "ssh -f -N -L <local_port>:localhost:<remote_port> <user@host>", "Buka SSH Tunnel di background (daemon) tanpa tahan terminal"),
     ("case-find-public-interface", "ip route get 1.1.1.1 | awk '{print \"Interface:\", $5, \"| Local IP:\", $7}'", "Cari kartu interface & IP lokal yang routing ke internet"),
 
-    # ── Port & Process Inspection ──
     ("port-who <port>", "lsof -i :<port>", "Cek aplikasi / PID apa yang sedang memakai port tertentu"),
     ("port-kill <port>", "fuser -k <port>/tcp", "Paksa matikan proses yang menduduki port tertentu"),
     ("ports-listen", "ss -tulwn", "List semua port TCP/UDP lokal yang aktif & listening"),
     ("ports-established", "ss -t state established", "List semua koneksi TCP yang sedang aktif (Established)"),
     ("port-check <host> <port>", "nc -zv <host> <port>", "Uji apakah port remote di server terbuka / bisa diakses"),
     
-    # ── DNS & Domain Diagnostics ──
     ("dns-records <domain>", "dig <domain> ANY +noall +answer", "Cek semua record DNS domain (A, MX, TXT, NS, CNAME)"),
     ("dns-trace <domain>", "dig +trace <domain>", "Lacak rantai resolusi DNS dari root server hingga authoritative"),
     ("dns-ip <domain>", "dig +short <domain>", "Ambil hanya IP address publik dari suatu domain secara cepat"),
@@ -115,31 +111,26 @@ network_defaults = [
     ("whois-domain <domain>", "whois <domain>", "Cek informasi kepemilikan dan registrar domain"),
     ("dns-flush-cache", "sudo systemd-resolve --flush-caches || sudo resolvectl flush-caches", "Flush / bersihkan cache DNS lokal komputer"),
 
-    # ── SSL / TLS Certificate ──
     ("ssl-expiry <domain>", "openssl s_client -connect <domain>:443 -servername <domain> 2>/dev/null | openssl x509 -noout -dates -subject", "Cek tanggal kadaluarsa & subjek sertifikat SSL"),
     ("ssl-chain <domain>", "openssl s_client -showcerts -connect <domain>:443", "Tampilkan sertifikat SSL lengkap beserta rantai CA chain"),
 
-    # ── HTTP & API Debugging ──
     ("http-timing <url>", 'curl -s -o /dev/null -w "DNS: %{time_namelookup}s | Connect: %{time_connect}s | TTFB: %{time_starttransfer}s | Total: %{time_total}s\n" <url>', "Ukur rincian latency HTTP (DNS, TCP, TTFB, Total)"),
     ("http-headers <url>", "curl -ILs <url>", "Ambil header HTTP lengkap dan ikuti redirect (301/302)"),
     ("http-post-json <url> <json>", "curl -X POST -H \"Content-Type: application/json\" -d '<json>' <url>", "Kirim request HTTP POST dengan payload JSON"),
     ("http-auth-bearer <url> <token>", "curl -H \"Authorization: Bearer <token>\" <url>", "Kirim request HTTP dengan Authorization Bearer Token"),
     ("http-download-resume <url>", "curl -C - -O <url>", "Download file besar dengan kemampuan resume jika terputus"),
 
-    # ── Traffic Sniffing & Bandwidth ──
     ("sniff-port <port>", "sudo tcpdump -i any port <port> -n -s 0 -X", "Sniff & dump isi paket data mentah pada port tertentu"),
     ("sniff-host <host>", "sudo tcpdump -i any host <host> -n", "Sniff seluruh lalu lintas paket menuju / dari host tertentu"),
     ("bandwidth-process", "sudo nethogs", "Monitor pemakaian bandwidth jaringan per proses / PID realtime"),
     ("bandwidth-live", "sudo iftop", "Monitor traffic bandwidth antar IP realtime"),
     ("speed-test", "curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -", "Uji kecepatan internet (Speedtest) langsung di terminal"),
 
-    # ── SSH Tunneling & Port Forwarding ──
     ("ssh-forward-local <local_port> <remote_port> <user@host>", "ssh -L <local_port>:localhost:<remote_port> <user@host> -N", "Buka port database remote di localhost laptop via SSH tunnel"),
     ("ssh-reverse-tunnel <remote_port> <local_port> <user@host>", "ssh -R <remote_port>:localhost:<local_port> <user@host> -N", "Expose server lokal ke VPS publik via Reverse SSH Tunnel"),
     ("ssh-socks-proxy <port> <user@host>", "ssh -D <port> -q -C -N <user@host>", "Buat proxy SOCKS5 aman melalui server SSH"),
     ("ssh-copy-key <user@host>", "ssh-copy-id <user@host>", "Salin public key SSH ke remote server agar login tanpa password"),
 
-    # ── IP, Routing & LAN Discovery ──
     ("my-ip-public", "curl -s ifconfig.me && echo", "Cek alamat IP publik internet saat ini"),
     ("my-ip-detail <ip>", "curl -s ipinfo.io/<ip>", "Cek detail geolokasi, kota, ISP, dan ASN dari IP address"),
     ("ip-lan-devices", "ip neigh", "List perangkat lain yang aktif di jaringan lokal / WiFi (ARP table)"),
@@ -147,12 +138,10 @@ network_defaults = [
     ("ip-route-table", "ip route show", "Tampilkan routing table & IP gateway router default"),
     ("ip-interface-stats", "ip -s link", "Cek statistik interface jaringan (packet drop / RX-TX errors)"),
 
-    # ── Firewall Management ──
     ("firewall-status", "sudo firewall-cmd --list-all 2>/dev/null || sudo ufw status verbose", "Cek status firewall & daftar port yang sedang terbuka"),
     ("firewall-open <port>", "sudo firewall-cmd --add-port=<port>/tcp --permanent && sudo firewall-cmd --reload", "Buka port TCP pada firewall Fedora / RHEL"),
     ("firewall-ufw-open <port>", "sudo ufw allow <port>/tcp", "Buka port TCP pada firewall UFW (Ubuntu / Debian)"),
 
-    # ── Connectivity & Latency ──
     ("trace-route <host>", "traceroute <host>", "Lacak rute hop perjalanan paket jaringan menuju target"),
     ("ping-test <host>", "ping -c 5 <host>", "Tes latency & stabilitas koneksi (dibatasi 5 paket)"),
     ("ping-mtu-check <packet_size> <host>", "ping -M do -s <packet_size> <host>", "Tes ukuran MTU tanpa fragmentasi (cth: 1472)"),
@@ -162,7 +151,47 @@ network_defaults = [
 for name, cmd, desc in network_defaults:
     add_entry("Network", name, cmd, desc)
 
-# ── 2. Parse User Shell Configuration (.zshrc / .bashrc) ──
+# ── 2. Curated Gold-Standard Defaults: [Forensics] Suite ──
+forensics_defaults = [
+    # ── Live System & Memory Forensics ──
+    ("case-proc-deleted-running", "ls -l /proc/*/exe 2>/dev/null | grep '(deleted)'", "Deteksi proses berjalan yang file binary aslinya sudah terhapus di disk"),
+    ("case-proc-env-strings <pid>", "strings /proc/<pid>/environ | tr '\\0' '\\n'", "Ekstrak environment variables & secret keys proses dari /proc"),
+    ("case-proc-network-listen", "sudo lsof -i -P -n | grep LISTEN", "Pemetaan lengkap proses aktif yang membuka port listening"),
+    ("proc-open-files <pid>", "lsof -p <pid>", "Audit handle file & koneksi socket dari suatu PID proses"),
+    ("case-memory-dump-process <pid> <output_file>", "sudo gcore -o <output_file> <pid>", "Dump snapshot memori RAM dari PID proses tertentu"),
+
+    # ── Log Investigation & Timeline ──
+    ("case-failed-ssh-top-ips", "journalctl -u sshd --no-pager | grep -i \"Failed password\" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 20", "Top 20 IP penyerang yang gagal login SSH (Brute-force audit)"),
+    ("case-sudo-exec-history", "journalctl _COMM=sudo -S -24h --no-pager | grep \"COMMAND=\"", "Audit timeline perintah yang dieksekusi dengan hak sudo 24 jam terakhir"),
+    ("auth-log-timeline", "last -Fwx", "Riwayat lengkap timeline login & logout pengguna"),
+    ("case-wtmp-raw-dump", "utmpdump /var/log/wtmp | tail -n 30", "Dump rekaman raw log sesi autentikasi /var/log/wtmp"),
+
+    # ── File Integrity & Timeline ──
+    ("case-hash-tree-sha256 <dir>", "find <dir> -type f -exec sha256sum {} + | tee hashes.sha256", "Buat baseline hash SHA256 seluruh file untuk integritas data"),
+    ("case-find-modified-recent <dir> <minutes>", "find <dir> -type f -mmin -<minutes> -ls", "Cari file yang baru dibuat atau diubah dalam N menit terakhir"),
+    ("case-find-hidden-executables <dir>", "find <dir> -type f -name \".*\" -perm /111 -ls 2>/dev/null", "Deteksi file executable tersembunyi (berawalan titik)"),
+    ("case-find-suid-binaries", "find / -perm -4000 -type f -exec ls -la {} + 2>/dev/null", "Audit binary SUID (Pemeriksaan celah Privilege Escalation)"),
+
+    # ── Artifact & Metadata Inspection ──
+    ("case-strings-suspicious <file>", "strings -a <file> | grep -Ei \"https?://|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+|/bin/sh|base64|cmd\\.exe|powershell\"", "Ekstrak IoC (IP, URL, command shell) dari file binary mentah"),
+    ("exif-metadata <file>", "exiftool <file>", "Ekstrak seluruh metadata tersembunyi dokumen / gambar"),
+    ("file-magic-check <file>", "file -b --mime-type <file>", "Periksa MIME type & magic bytes asli file terlepas dari ekstensinya"),
+    ("binwalk-analyze <file>", "binwalk <file>", "Analisis dan ekstrak komponen tersembunyi di dalam file / firmware"),
+
+    # ── Persistence & Backdoor Hunting ──
+    ("case-audit-all-crontabs", "for user in $(cut -f1 -d: /etc/passwd); do echo \"=== User: $user ===\"; crontab -u $user -l 2>/dev/null; done; ls -la /etc/cron*", "Audit scheduled task cron seluruh user untuk mencari persistence backdoor"),
+    ("case-audit-systemd-timers", "systemctl list-timers --all", "List seluruh timer service systemd yang terjadwal aktif"),
+    ("case-audit-autostart-services", "systemctl list-unit-files --type=service --state=enabled", "List seluruh service yang otomatis aktif saat boot sistem"),
+    ("case-audit-ssh-authorized-keys", "grep -H \"\" /home/*/.ssh/authorized_keys /root/.ssh/authorized_keys 2>/dev/null", "Periksa kunci publik SSH yang terdaftar di seluruh home user"),
+
+    # ── Storage Forensics ──
+    ("disk-image-dd <source_dev> <output_img>", "sudo dd if=<source_dev> of=<output_img> bs=64K status=progress conv=noerror,sync", "Buat image bitstream raw forensik sektor-per-sektor"),
+]
+
+for name, cmd, desc in forensics_defaults:
+    add_entry("Forensics", name, cmd, desc)
+
+# ── 3. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
         continue
@@ -239,7 +268,7 @@ for rc in shell_rcs:
 
                 add_entry(cat_clean, display_name, exec_cmd, comment)
 
-# ── 3. Append Custom User Commands from custom.tsv ──────
+# ── 4. Append Custom User Commands from custom.tsv ──────
 if os.path.exists(custom_path):
     with open(custom_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
@@ -300,7 +329,7 @@ case "$1" in
         echo ""
         echo "Usage: ezysh [options] [query]"
         echo ""
-        echo "Tip: Type 'network', 'git', 'docker', 'sys' to filter by category!"
+        echo "Tip: Type 'network', 'forensics', 'git', 'sys' to filter by category!"
         echo "Tip: Type 'case' to find end-to-end multi-step workflow recipes!"
         echo ""
         echo "Options:"
@@ -322,8 +351,6 @@ fi
 INITIAL_QUERY="$1"
 
 # ── Interactive Aesthetic FZF Palette ─────────────
-# Clean list on the left: Category badge + Name (No squeezed truncated description)
-# Full detail card rendered on the right with zero shell syntax errors
 selected=$(awk -F'\t' '
 BEGIN { OFS="\t" }
 /^#/ || /^$/ { next }
@@ -332,8 +359,7 @@ BEGIN { OFS="\t" }
     name = $2
     cmd = $3
     desc = $4
-    # Column 1 for display in list: Category badge + bold white trigger name
-    printf "\033[0;35m%-10s\033[0m \033[1;37m%s\033[0m\t%s\t%d\n", cat, name, cmd, NR
+    printf "\033[0;35m%-12s\033[0m \033[1;37m%s\033[0m\t%s\t%d\n", cat, name, cmd, NR
 }' "$DB_FILE" | fzf \
     --ansi \
     --delimiter='\t' \
