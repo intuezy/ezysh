@@ -1,14 +1,13 @@
 <div align="center">
 
 # ⚡ ezysh
+**The aesthetic, blazing-fast command palette & alias launcher for your terminal.**
 
-### *The aesthetic, intuitive command palette & alias launcher for your shell.*
+[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
+[![Shell](https://img.shields.io/badge/Shell-Zsh%20%7C%20Bash%20%7C%20Fish-blue.svg)]()
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-black.svg)]()
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Shell](https://img.shields.io/badge/Shell-Zsh%20%7C%20Bash%20%7C%20Fish-purple?style=flat-square)](https://github.com/intuezy/ezysh)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-
-**ezysh** brings the smooth, modern **Command Palette (`Ctrl + K`)** experience of VS Code and Raycast directly into your terminal. Never forget your `.zshrc` aliases, complex docker flags, or git shortcuts again.
+*Stop forgetting your complex one-liners, aliases, and shell recipes. Jump into your personal command palette with `Ctrl + K`.*
 
 </div>
 
@@ -16,112 +15,71 @@
 
 ## ✨ Features
 
-- 🎯 **Direct Prompt Injection (Safe)** — Injects chosen commands directly into your shell line buffer (`BUFFER`), allowing you to review, edit, or adjust flags before hitting Enter.
-- 🔄 **Auto-Sync from Shell Config** — Automatically parses aliases, comments, and section headers from your `~/.zshrc` or `~/.bashrc` with 0 manual effort.
-- 🧩 **Interactive Parameter Replacement** — Detects placeholders like `<branch>`, `<package>`, `<pid>`, or `<file>` and prompts you to fill them in interactively.
-- 🎨 **Aesthetic & Transparent UI** — Seamlessly blends into your terminal's background blur and color scheme (`bg:-1`).
-- ⚡ **Zero-Bloat & Instant (0ms latency)** — Powered by `fzf` and pure shell. No heavy runtime or bulky compiler dependencies required.
+- **⚡ Instant Fuzzy Search**: Fuzzy-find any command, shell alias, or recipe in less than `1ms`.
+- **🏷 Category-First Filtering**: Type `docker`, `network`, `git`, `forensics`, `linux`, or `case` to filter commands by domain immediately.
+- **🪄 Interactive Parameter Replacement**: If a command has `<port>`, `<url>`, `<branch>`, `ezysh` prompts you to fill it in before injecting to your prompt.
+- **🔄 Auto-Syncs with Shell**: Automatically indexes all aliases and comments from your `~/.zshrc`, `~/.bashrc`, or Fish configs.
+- **✨ Safe Execution**: Injects directly into your active ZLE prompt without executing blindly, so you can inspect/modify before pressing Enter.
+- **🌸 Deep Space Minimalist Palette**: Clean Japanese typography, zero clunky borders, pixel-perfect preview cards.
+- **➕ Quick Add Snippets**: Add new commands from anywhere via `ezy --add`.
 
 ---
 
-## ⚡ Quick Start
+## 📦 Curated Built-in Suites
 
-### 1. One-Line Installer
+`ezysh` comes out of the box with over **190+ production-grade commands and recipes**:
+
+1. **🐳 `[Docker]`**: System prune, bulk stop/rm, instant container shell, live resource stats, IP inspect.
+2. **📦 `[Git]`**: Undo last commit, emergency workspace discard, search history by code changes, prune merged branches.
+3. **🔌 `[Network]`**: Port killing, DNS hierarchy trace, multi-resolver benchmark, SSL expiry check, live traffic sniffing.
+4. **🔍 `[Forensics]`**: Fileless malware detection, deleted running binaries, IoC extraction, crontab persistence audit, SHA256 trees.
+5. **🐧 `[Linux]`**: Disk hogs locator, permission recovery, systemd error filters, clean config reader, live logs.
+6. **🎯 `[Cases]`**: End-to-end multi-pipe recipes solving real-world scenarios.
+
+---
+
+## 🚀 Quick Install
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/intuezy/ezysh/main/install.sh | bash
 ```
 
----
-
-### 2. Manual Installation / Plugin Managers
-
-#### Oh-My-Zsh
-```bash
-git clone https://github.com/intuezy/ezysh.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/ezysh
-```
-Add `ezysh` to your plugins in `~/.zshrc`:
-```zsh
-plugins=(... ezysh)
-```
-
-#### Zinit
-```zsh
-zinit light intuezy/ezysh
-```
-
-#### Manual (Zsh / Bash)
-Clone the repository and add it to your PATH:
+Or clone manually:
 ```bash
 git clone https://github.com/intuezy/ezysh.git ~/.ezysh
-echo 'export PATH="$HOME/.ezysh/bin:$PATH"' >> ~/.zshrc
-echo 'source ~/.ezysh/ezysh.plugin.zsh' >> ~/.zshrc
-source ~/.zshrc
+mkdir -p ~/.local/bin
+ln -s ~/.ezysh/bin/ezysh ~/.local/bin/ezysh
+ln -s ~/.ezysh/bin/ezysh ~/.local/bin/ezy
+```
+
+Add to your `~/.zshrc`:
+```bash
+source ~/.ezysh/ezysh.plugin.zsh
 ```
 
 ---
 
-## ⌨️ Usage
+## ⌨️ Keybindings & Usage
 
-| Trigger / Command | Action |
+| Trigger | Action |
 | :--- | :--- |
-| `Ctrl + K` / `Ctrl + Space` | Open interactive command palette anywhere in your terminal |
-| `ezy` / `ezysh` | Launch palette via CLI |
-| `ezy --sync` | Manually re-sync aliases from `~/.zshrc` |
-| `ezy --edit` | Open custom cheatsheet file (`~/.config/ezysh/custom.tsv`) |
-| `ezy --list` | Print all registered commands in plain text |
+| **`Ctrl + K`** | Open `ezysh` interactive command palette |
+| **`Ctrl + Space`** | Alternative keybinding for opening `ezysh` |
+| **`ezy` / `ezysh`** | Open palette directly from terminal |
+| **`ezy --add <name> <cmd> <desc> [cat]`** | Quick add a new snippet to your database |
+| **`ezy --sync`** | Manually force sync aliases & defaults |
+| **`ezy --edit`** | Open `custom.tsv` in your default `$EDITOR` |
 
 ---
 
-## 🧩 Interactive Parameter Replacement
-
-Commands with bracketed placeholders will automatically trigger a mini prompt before writing to your prompt:
+## 💡 Quick Add Example
 
 ```bash
-# Selecting:
-gco <branch>
-
-# Triggers:
-⚡ Enter <branch> (press Enter to skip): feature/login
-
-# Injects into terminal:
-git checkout feature/login
+ezy --add "deploy-prod" "git push origin main && ./deploy.sh" "Deploy master branch to production" "DevOps"
 ```
 
 ---
 
-## 🎨 Custom Commands
+## 📜 License
 
-Want to add custom workflow snippets without defining shell aliases? Edit your custom file:
-
-```bash
-ezy --edit
-# or open ~/.config/ezysh/custom.tsv
-```
-
-Format (`Tab`-separated):
-```tsv
-Name <TAB> Command to execute <TAB> [Category] Description
-```
-
-Example:
-```tsv
-docker-prune	docker system prune -af --volumes	[Docker] Remove all unused containers & images
-k8s-pods	kubectl get pods -A -o wide	[K8s] List all pods across all namespaces
-```
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-Feel free to check the [issues page](https://github.com/intuezy/ezysh/issues).
-
----
-
-## 📄 License
-
-Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.
-
-<div align="center">
-Built with 💜 by <a href="https://github.com/intuezy">intuezy</a>
-</div>
+MIT License © 2026 [intuezy](https://github.com/intuezy)

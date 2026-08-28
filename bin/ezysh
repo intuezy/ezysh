@@ -5,7 +5,7 @@
 # License: MIT
 # ==============================================================================
 
-VERSION="1.5.0"
+VERSION="1.6.0"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
 DB_FILE="$CONFIG_DIR/commands.tsv"
 CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
@@ -84,9 +84,35 @@ def add_entry(cat, name, cmd, desc):
         clean_cat = cat if cat.startswith("[") else f"[{cat}]"
         entries.append((clean_cat, name, cmd, desc))
 
-# ── 1. Curated Gold-Standard Defaults: [Linux] Essentials ──
+# ── 1. Curated Gold-Standard Defaults: [Docker] (Essential Maintenance) ──
+docker_defaults = [
+    ("docker-clean-all", "docker system prune -af --volumes", "Bebaskan puluhan GB disk dari image, container, cache & volume sampah"),
+    ("docker-stop-all", "docker stop $(docker ps -aq)", "Hentikan seluruh container yang sedang berjalan sekaligus"),
+    ("docker-rm-all", "docker rm -f $(docker ps -aq)", "Hapus paksa seluruh container yang ada di sistem"),
+    ("docker-exec-sh <container>", "docker exec -it <container> /bin/sh", "Langsung masuk ke dalam terminal/shell container aktif"),
+    ("docker-logs-tail <container>", "docker logs -f --tail 100 <container>", "Pantau live log 100 baris terakhir dari container"),
+    ("docker-inspect-ip <container>", "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container>", "Cek alamat IP lokal container dalam jaringan Docker"),
+    ("docker-compose-rebuild", "docker compose up -d --build --force-recreate", "Rebuild dan jalankan ulang seluruh service compose secara bersih"),
+    ("docker-stats-live", "docker stats --format \"table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.NetIO}}\"", "Monitor konsumsi CPU, RAM & Network I/O container realtime"),
+]
+for name, cmd, desc in docker_defaults:
+    add_entry("Docker", name, cmd, desc)
+
+# ── 2. Curated Gold-Standard Defaults: [Git] (Power & Recovery Cases) ──
+git_power_defaults = [
+    ("case-git-undo-commit", "git reset --soft HEAD~1", "Batalkan commit terakhir tanpa menghapus kodingan (kembali ke staged)"),
+    ("case-git-discard-all", "git restore . && git clean -fd", "Reset total direktori kerja kembali bersih ke kondisi commit terakhir"),
+    ("case-git-amend-no-edit", "git commit --amend --no-edit", "Tambahkan file kelupaan ke commit terakhir tanpa merubah pesan"),
+    ("case-git-search-history <text>", "git log -S \"<text>\" --source --all", "Cari commit mana yang pernah menambah atau menghapus baris kode tertentu"),
+    ("case-git-delete-merged-branches", "git branch --merged | grep -v \"\\*\" | xargs -n 1 git branch -d", "Hapus massal branch lokal yang sudah berhasil di-merge ke main"),
+    ("case-git-rename-branch <new_name>", "git branch -m <new_name>", "Rename / ganti nama branch yang sedang aktif saat ini"),
+    ("case-git-stash-staged-only", "git stash --keep-index", "Stash hanya file yang belum di-stage (keep staged changes)"),
+]
+for name, cmd, desc in git_power_defaults:
+    add_entry("Git", name, cmd, desc)
+
+# ── 3. Curated Gold-Standard Defaults: [Linux] Essentials ──
 linux_defaults = [
-    # ── Navigation & Disk Usage ──
     ("disk-usage-top", "du -sh * 2>/dev/null | sort -h", "Urutkan folder/file terbesar di direktori saat ini (Cari pemakan disk)"),
     ("disk-partitions", "df -hT", "Cek sisa kapasitas partisi disk & tipe filesystem (ext4/btrfs/xfs)"),
     ("cd-previous", "cd -", "Kembali ke direktori sebelumnya (seperti tombol back)"),
@@ -94,37 +120,31 @@ linux_defaults = [
     ("find-modified-24h", "find . -type f -mtime -1", "Cari semua file yang diubah dalam 24 jam terakhir"),
     ("rsync-copy <src> <dst>", "rsync -avzP <src> <dst>", "Copy file super cepat dengan progress bar & resume capability"),
 
-    # ── Permissions & Ownership ──
     ("chown-take-ownership <dir>", "sudo chown -R $USER:$USER <dir>", "Ambil alih kepemilikan folder yang terkunci akses root"),
     ("chmod-executable <file>", "chmod +x <file>", "Beri izin eksekusi pada script bash / binary"),
     ("my-user-groups", "id && groups", "Cek identitas user & group saat ini (misal cek akses docker/wheel)"),
     ("check-dir-permission <dir>", "ls -ld <dir>", "Cek izin permission direktori itu sendiri tanpa list isinya"),
 
-    # ── Systemd & Service Management ──
     ("services-failed", "systemctl --failed", "List semua service yang crash atau gagal start saat booting"),
     ("service-enable-now <service>", "sudo systemctl enable --now <service>", "Auto-start saat boot sekaligus langsung jalankan service sekarang"),
     ("service-logs-live <service>", "journalctl -u <service> -f", "Pantau live log error service tertentu secara realtime"),
     ("system-errors-boot", "journalctl -p 3 -xb", "Hanya tampilkan log error kritis (Priority 3) dari boot saat ini"),
 
-    # ── Process & Performance ──
     ("pkill-by-name <nama>", "pkill -f <nama>", "Tutup paksa semua proses berdasarkan namanya (cth: pkill -f node)"),
     ("ram-usage", "free -h", "Cek sisa penggunaan memori RAM dan Swap"),
     ("cpu-load-uptime", "uptime", "Cek uptime sistem & rata-rata beban CPU (Load average 1m, 5m, 15m)"),
 
-    # ── Config & Text Power Tools ──
     ("clean-config-read <file>", "grep -v \"^#\" <file> | grep -v \"^$\"", "Baca file konfigurasi bersih tanpa komentar # dan baris kosong"),
     ("tail-log-live <file>", "tail -f <file>", "Pantau baris log yang terus bertambah secara realtime"),
     ("sudo-write-file <file> <text>", "echo \"<text>\" | sudo tee -a <file>", "Tulis teks ke file sistem dengan hak root via sudo tee"),
 
-    # ── Hardware & Storage ──
     ("lsblk-layout", "lsblk -f", "Peta visual seluruh harddisk, partisi, mountpoint & UUID"),
     ("kernel-usb-logs", "dmesg -T | grep -i \"usb\\|error\" | tail -n 30", "Cek log kernel hardware (Deteksi flashdisk/SSD yang error)"),
 ]
-
 for name, cmd, desc in linux_defaults:
     add_entry("Linux", name, cmd, desc)
 
-# ── 2. Curated Gold-Standard Defaults: [Network] Suite ──
+# ── 4. Curated Gold-Standard Defaults: [Network] Suite ──
 network_defaults = [
     ("case-kill-port <port>", "kill -9 $(lsof -t -i :<port>)", "Otomatis cari PID & paksa matikan proses yang menduduki port"),
     ("case-top-connected-ips", "ss -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10", "Deteksi Top 10 IP koneksi terbanyak ke server (Investigasi DDoS/Traffic)"),
@@ -187,11 +207,10 @@ network_defaults = [
     ("ping-mtu-check <packet_size> <host>", "ping -M do -s <packet_size> <host>", "Tes ukuran MTU tanpa fragmentasi (cth: 1472)"),
     ("wifi-networks", "nmcli dev wifi list", "Scan dan list semua sinyal WiFi di sekitar"),
 ]
-
 for name, cmd, desc in network_defaults:
     add_entry("Network", name, cmd, desc)
 
-# ── 3. Curated Gold-Standard Defaults: [Forensics] Suite ──
+# ── 5. Curated Gold-Standard Defaults: [Forensics] Suite ──
 forensics_defaults = [
     ("case-proc-deleted-running", "ls -l /proc/*/exe 2>/dev/null | grep '(deleted)'", "Deteksi proses berjalan yang file binary aslinya sudah terhapus di disk"),
     ("case-proc-env-strings <pid>", "strings /proc/<pid>/environ | tr '\\0' '\\n'", "Ekstrak environment variables & secret keys proses dari /proc"),
@@ -221,11 +240,10 @@ forensics_defaults = [
 
     ("disk-image-dd <source_dev> <output_img>", "sudo dd if=<source_dev> of=<output_img> bs=64K status=progress conv=noerror,sync", "Buat image bitstream raw forensik sektor-per-sektor"),
 ]
-
 for name, cmd, desc in forensics_defaults:
     add_entry("Forensics", name, cmd, desc)
 
-# ── 4. Parse User Shell Configuration (.zshrc / .bashrc) ──
+# ── 6. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
         continue
@@ -246,7 +264,6 @@ for rc in shell_rcs:
                 cmd = alias_match.group(2).strip()
                 comment = alias_match.group(3).strip() if alias_match.group(3) else f"Alias untuk {cmd}"
                 
-                # Smart annotation for interactive parameter replacement
                 display_name = name
                 exec_cmd = cmd
                 if name in ["gco", "gsw", "gb"]:
@@ -302,7 +319,7 @@ for rc in shell_rcs:
 
                 add_entry(cat_clean, display_name, exec_cmd, comment)
 
-# ── 5. Append Custom User Commands from custom.tsv ──────
+# ── 7. Append Custom User Commands from custom.tsv ──────
 if os.path.exists(custom_path):
     with open(custom_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
@@ -338,6 +355,25 @@ fi
 
 # ── CLI Arguments Handling ────────────────────────
 case "$1" in
+    -a|--add)
+        # Usage: ezysh --add "name" "command" "description" [category]
+        NAME="$2"
+        CMD="$3"
+        DESC="$4"
+        CAT="${5:-Custom}"
+
+        if [ -z "$NAME" ] || [ -z "$CMD" ]; then
+            echo -e "\033[1;31mUsage:\033[0m ezysh --add <name> <command> <description> [category]"
+            echo -e "\033[0;37mExample:\033[0m ezysh --add \"dclean\" \"docker system prune -af\" \"Bersihkan docker\" \"Docker\""
+            exit 1
+        fi
+
+        [ ! -f "$CUSTOM_FILE" ] && echo "# ezysh custom commands database" > "$CUSTOM_FILE"
+        echo -e "${NAME}\t${CMD}\t[${CAT}] ${DESC}" >> "$CUSTOM_FILE"
+        sync_aliases
+        echo -e "\033[1;32m⚡ ezysh:\033[0m Successfully added '\033[1;37m$NAME\033[0m' to [$CAT] commands!"
+        exit 0
+        ;;
     -s|--sync)
         sync_aliases
         count=$(wc -l < "$DB_FILE" 2>/dev/null || echo 0)
@@ -363,10 +399,11 @@ case "$1" in
         echo ""
         echo "Usage: ezysh [options] [query]"
         echo ""
-        echo "Tip: Type 'linux', 'network', 'forensics', 'git', 'sys' to filter by category!"
+        echo "Tip: Type 'docker', 'git', 'network', 'forensics', 'linux' to filter by category!"
         echo "Tip: Type 'case' to find end-to-end multi-step workflow recipes!"
         echo ""
         echo "Options:"
+        echo "  -a, --add      Quick add a new command snippet: ezysh -a <name> <cmd> <desc> [cat]"
         echo "  -s, --sync     Sync aliases and curated defaults into database"
         echo "  -e, --edit     Open custom commands file for manual editing"
         echo "  -l, --list     Print all stored commands to standard output"
