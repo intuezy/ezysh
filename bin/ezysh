@@ -5,12 +5,58 @@
 # License: MIT
 # ==============================================================================
 
-VERSION="1.3.0"
+VERSION="1.3.1"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
 DB_FILE="$CONFIG_DIR/commands.tsv"
 CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
 
 mkdir -p "$CONFIG_DIR"
+
+# ── Function: Render Safe Preview Card ────────────
+render_preview() {
+    local line_num="$1"
+    python3 - "$DB_FILE" "$line_num" << 'PYEOF'
+import sys, linecache
+
+db_path = sys.argv[1]
+try:
+    line_num = int(sys.argv[2])
+except (ValueError, IndexError):
+    sys.exit(0)
+
+raw = linecache.getline(db_path, line_num).strip()
+if not raw:
+    sys.exit(0)
+
+parts = raw.split("\t")
+cat = parts[0] if len(parts) > 0 else "-"
+name = parts[1] if len(parts) > 1 else "-"
+cmd = parts[2] if len(parts) > 2 else "-"
+desc = parts[3] if len(parts) > 3 else "-"
+
+# Clean category tag
+clean_cat = cat.replace("[", "").replace("]", "").strip()
+
+print(f"\033[1;35m  🏷  CATEGORY\033[0m")
+print(f"  \033[1;36m{clean_cat}\033[0m\n")
+
+print(f"\033[1;35m  ⚡ COMMAND\033[0m")
+print(f"  \033[1;32m{cmd}\033[0m\n")
+
+print(f"\033[1;34m  ℹ  DESCRIPTION\033[0m")
+print(f"  \033[0;37m{desc}\033[0m\n")
+
+if "<" in cmd and ">" in cmd:
+    print(f"\033[1;33m  💡 PARAMETER INPUT\033[0m")
+    print(f"  \033[0;33mTekan Enter untuk mengisi nilai parameter\033[0m")
+PYEOF
+    exit 0
+}
+
+# Preview mode hook (invoked by fzf)
+if [ "$1" = "--preview-line" ]; then
+    render_preview "$2"
+fi
 
 # ── Built-in Curated Defaults & Shell Sync ────────
 sync_aliases() {
@@ -42,17 +88,17 @@ def add_entry(cat, name, cmd, desc):
 # ── 1. Curated Gold-Standard Defaults: [Network] Suite ──
 network_defaults = [
     # ── Real-World Case & Pipeline Combinations ──
-    ("case-kill-port <port>", "kill -9 $(lsof -t -i :<port>)", "CASE: Otomatis cari PID & paksa matikan proses yang pakai port"),
-    ("case-top-connected-ips", "ss -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10", "CASE: Deteksi Top 10 IP koneksi terbanyak ke server (Investigasi DDoS/Traffic)"),
-    ("case-dns-compare-resolvers <domain>", "for dns in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do echo -ne \"DNS $dns: \\t\"; dig @$dns +short <domain> | tr '\\n' ' '; echo \"\"; done", "CASE: Uji propagasi DNS ke 4 provider publik (Cloudflare, Google, Quad9, OpenDNS)"),
-    ("case-check-ssl-days-left <domain>", "echo | openssl s_client -servername <domain> -connect <domain>:443 2>/dev/null | openssl x509 -noout -enddate -checkend 2592000 && echo \"✅ SSL Valid > 30 hari\" || echo \"⚠️ SSL Expiring Soon / Invalid\"", "CASE: Cek masa berlaku SSL apakah masih aman > 30 hari"),
-    ("case-watch-port <port>", "watch -n 1 \"ss -tulpn | grep :<port>\"", "CASE: Live monitor status port & koneksi setiap 1 detik"),
-    ("case-api-benchmark-10x <url>", "for i in {1..10}; do curl -s -o /dev/null -w \"Run $i: Status %{http_code} | Total: %{time_total}s (TTFB: %{time_starttransfer}s)\\n\" <url>; done", "CASE: Benchmark latency endpoint API 10 kali berturut-turut"),
-    ("case-sniff-http-requests <port>", "sudo tcpdump -s 0 -A -l -i any \"tcp port <port>\" | grep -E --line-buffered \"^(GET|POST|PUT|DELETE|PATCH|HEAD) \"", "CASE: Sniff & filter khusus baris request HTTP di port tertentu"),
-    ("case-scan-wifi-live-hosts", "nmap -sn $(ip -o -f inet addr show | awk '/scope global/ {print $4}' | head -n 1)", "CASE: Auto-scan seluruh IP perangkat yang aktif di subnet WiFi lokal"),
-    ("case-download-extract-tar <url>", "curl -sL <url> | tar -xz", "CASE: Download dan langsung ekstrak arsip tar.gz tanpa simpan file .tar"),
-    ("case-ssh-background-tunnel <local_port> <remote_port> <user@host>", "ssh -f -N -L <local_port>:localhost:<remote_port> <user@host>", "CASE: Buka SSH Tunnel di background (daemon) tanpa tahan terminal"),
-    ("case-find-public-interface", "ip route get 1.1.1.1 | awk '{print \"Interface:\", $5, \"| Local IP:\", $7}'", "CASE: Cari nama kartu interface & IP lokal yang routing ke internet"),
+    ("case-kill-port <port>", "kill -9 $(lsof -t -i :<port>)", "Otomatis cari PID & paksa matikan proses yang menduduki port"),
+    ("case-top-connected-ips", "ss -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10", "Deteksi Top 10 IP koneksi terbanyak ke server (Investigasi DDoS/Traffic)"),
+    ("case-dns-compare-resolvers <domain>", "for dns in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do echo -ne \"DNS $dns: \\t\"; dig @$dns +short <domain> | tr '\\n' ' '; echo \"\"; done", "Uji propagasi DNS ke 4 provider publik (Cloudflare, Google, Quad9, OpenDNS)"),
+    ("case-check-ssl-days-left <domain>", "echo | openssl s_client -servername <domain> -connect <domain>:443 2>/dev/null | openssl x509 -noout -enddate -checkend 2592000 && echo \"✅ SSL Valid > 30 hari\" || echo \"⚠️ SSL Expiring Soon / Invalid\"", "Cek masa berlaku SSL apakah masih aman > 30 hari"),
+    ("case-watch-port <port>", "watch -n 1 \"ss -tulpn | grep :<port>\"", "Live monitor status port & koneksi setiap 1 detik"),
+    ("case-api-benchmark-10x <url>", "for i in {1..10}; do curl -s -o /dev/null -w \"Run $i: Status %{http_code} | Total: %{time_total}s (TTFB: %{time_starttransfer}s)\\n\" <url>; done", "Benchmark latency endpoint API 10 kali berturut-turut"),
+    ("case-sniff-http-requests <port>", "sudo tcpdump -s 0 -A -l -i any \"tcp port <port>\" | grep -E --line-buffered \"^(GET|POST|PUT|DELETE|PATCH|HEAD) \"", "Sniff & filter khusus baris request HTTP di port tertentu"),
+    ("case-scan-wifi-live-hosts", "nmap -sn $(ip -o -f inet addr show | awk '/scope global/ {print $4}' | head -n 1)", "Auto-scan seluruh IP perangkat aktif di subnet WiFi lokal"),
+    ("case-download-extract-tar <url>", "curl -sL <url> | tar -xz", "Download dan langsung ekstrak arsip tar.gz tanpa simpan file .tar"),
+    ("case-ssh-background-tunnel <local_port> <remote_port> <user@host>", "ssh -f -N -L <local_port>:localhost:<remote_port> <user@host>", "Buka SSH Tunnel di background (daemon) tanpa tahan terminal"),
+    ("case-find-public-interface", "ip route get 1.1.1.1 | awk '{print \"Interface:\", $5, \"| Local IP:\", $7}'", "Cari kartu interface & IP lokal yang routing ke internet"),
 
     # ── Port & Process Inspection ──
     ("port-who <port>", "lsof -i :<port>", "Cek aplikasi / PID apa yang sedang memakai port tertentu"),
@@ -275,7 +321,9 @@ fi
 
 INITIAL_QUERY="$1"
 
-# ── Interactive Category-First FZF Palette ────────
+# ── Interactive Aesthetic FZF Palette ─────────────
+# Clean list on the left: Category badge + Name (No squeezed truncated description)
+# Full detail card rendered on the right with zero shell syntax errors
 selected=$(awk -F'\t' '
 BEGIN { OFS="\t" }
 /^#/ || /^$/ { next }
@@ -284,7 +332,8 @@ BEGIN { OFS="\t" }
     name = $2
     cmd = $3
     desc = $4
-    printf "%-12s \033[1;37m%-35s\033[0m │ \033[0;37m%s\033[0m\t%s\t%s\t%s\n", cat, name, desc, cmd, cat, desc
+    # Column 1 for display in list: Category badge + bold white trigger name
+    printf "\033[0;35m%-10s\033[0m \033[1;37m%s\033[0m\t%s\t%d\n", cat, name, cmd, NR
 }' "$DB_FILE" | fzf \
     --ansi \
     --delimiter='\t' \
@@ -293,15 +342,15 @@ BEGIN { OFS="\t" }
     --height=60% \
     --layout=reverse \
     --border=sharp \
-    --border-label=" ⚡ ezysh — Command Palette " \
+    --border-label=" ⚡ ezysh " \
     --border-label-pos=3 \
     --prompt="   " \
     --pointer="❯" \
     --marker="●" \
+    --info=inline-right \
     --color="bg:-1,bg+:#342f4b,fg:#7f849c,fg+:#e6e6fa,hl:#f38ba8,hl+:#f38ba8,info:#7f849c,prompt:#cba6f7,pointer:#cba6f7,marker:#a6e3a1,spinner:#cba6f7,border:#342f4b,header:#7f849c" \
-    --header=" [ Tip: Ketik 'network', 'case', 'git', 'sys' untuk filter instan ] " \
-    --preview="echo -e '\n\033[1;35m  🏷  Category:\033[0m  \033[1;36m{3}\033[0m\n\n\033[1;35m  ⚡ Command:\033[0m\n  \033[1;32m{2}\033[0m\n\n\033[1;34m  ℹ  Description:\033[0m\n  \033[0;37m{4}\033[0m'" \
-    --preview-window=right:44%:wrap)
+    --preview="ezysh --preview-line {3}" \
+    --preview-window=right:48%:wrap:border-left)
 
 if [ -z "$selected" ]; then
     exit 0
