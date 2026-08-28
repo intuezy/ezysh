@@ -5,7 +5,7 @@
 # License: MIT
 # ==============================================================================
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
 DB_FILE="$CONFIG_DIR/commands.tsv"
 CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
@@ -36,31 +36,67 @@ def add_entry(cat, name, cmd, desc):
     key = f"{cat}:{name}"
     if key not in seen_commands:
         seen_commands.add(key)
-        # Ensure category is formatted as [Category]
         clean_cat = cat if cat.startswith("[") else f"[{cat}]"
         entries.append((clean_cat, name, cmd, desc))
 
-# ── 1. Curated Gold-Standard Defaults: [Network] ────────
+# ── 1. Curated Gold-Standard Defaults: [Network] (Complete 30+ Suite) ──
 network_defaults = [
+    # ── Port & Process Inspection ──
     ("port-who <port>", "lsof -i :<port>", "Cek aplikasi / PID apa yang sedang memakai port tertentu"),
     ("port-kill <port>", "fuser -k <port>/tcp", "Paksa matikan proses yang menduduki port tertentu"),
     ("ports-listen", "ss -tulwn", "List semua port TCP/UDP lokal yang aktif & listening"),
+    ("ports-established", "ss -t state established", "List semua koneksi TCP yang sedang aktif (Established)"),
     ("port-check <host> <port>", "nc -zv <host> <port>", "Uji apakah port remote di server terbuka / bisa diakses"),
+    
+    # ── DNS & Domain Diagnostics ──
     ("dns-records <domain>", "dig <domain> ANY +noall +answer", "Cek semua record DNS domain (A, MX, TXT, NS, CNAME)"),
     ("dns-trace <domain>", "dig +trace <domain>", "Lacak rantai resolusi DNS dari root server hingga authoritative"),
     ("dns-ip <domain>", "dig +short <domain>", "Ambil hanya IP address publik dari suatu domain secara cepat"),
     ("dns-reverse <ip>", "dig -x <ip> +short", "Reverse DNS: Cari nama domain asal dari sebuah IP address"),
     ("whois-domain <domain>", "whois <domain>", "Cek informasi kepemilikan dan registrar domain"),
+    ("dns-flush-cache", "sudo systemd-resolve --flush-caches || sudo resolvectl flush-caches", "Flush / bersihkan cache DNS lokal komputer"),
+
+    # ── SSL / TLS Certificate ──
     ("ssl-expiry <domain>", "openssl s_client -connect <domain>:443 -servername <domain> 2>/dev/null | openssl x509 -noout -dates -subject", "Cek tanggal kadaluarsa & subjek sertifikat SSL"),
     ("ssl-chain <domain>", "openssl s_client -showcerts -connect <domain>:443", "Tampilkan sertifikat SSL lengkap beserta rantai CA chain"),
+
+    # ── HTTP & API Debugging ──
     ("http-timing <url>", 'curl -s -o /dev/null -w "DNS: %{time_namelookup}s | Connect: %{time_connect}s | TTFB: %{time_starttransfer}s | Total: %{time_total}s\n" <url>', "Ukur rincian latency HTTP (DNS, TCP, TTFB, Total)"),
     ("http-headers <url>", "curl -ILs <url>", "Ambil header HTTP lengkap dan ikuti redirect (301/302)"),
+    ("http-post-json <url> <json>", "curl -X POST -H \"Content-Type: application/json\" -d '<json>' <url>", "Kirim request HTTP POST dengan payload JSON"),
+    ("http-auth-bearer <url> <token>", "curl -H \"Authorization: Bearer <token>\" <url>", "Kirim request HTTP dengan Authorization Bearer Token"),
+    ("http-download-resume <url>", "curl -C - -O <url>", "Download file besar dengan kemampuan resume jika terputus"),
+
+    # ── Traffic Sniffing & Bandwidth ──
+    ("sniff-port <port>", "sudo tcpdump -i any port <port> -n -s 0 -X", "Sniff & dump isi paket data mentah pada port tertentu"),
+    ("sniff-host <host>", "sudo tcpdump -i any host <host> -n", "Sniff seluruh lalu lintas paket menuju / dari host tertentu"),
+    ("bandwidth-process", "sudo nethogs", "Monitor pemakaian bandwidth jaringan per proses / PID realtime"),
+    ("bandwidth-live", "sudo iftop", "Monitor traffic bandwidth antar IP realtime"),
+    ("speed-test", "curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -", "Uji kecepatan internet (Speedtest) langsung di terminal"),
+
+    # ── SSH Tunneling & Port Forwarding ──
+    ("ssh-forward-local <local_port> <remote_port> <user@host>", "ssh -L <local_port>:localhost:<remote_port> <user@host> -N", "Buka port database remote di localhost laptop via SSH tunnel"),
+    ("ssh-reverse-tunnel <remote_port> <local_port> <user@host>", "ssh -R <remote_port>:localhost:<local_port> <user@host> -N", "Expose server lokal ke VPS publik via Reverse SSH Tunnel"),
+    ("ssh-socks-proxy <port> <user@host>", "ssh -D <port> -q -C -N <user@host>", "Buat proxy SOCKS5 aman melalui server SSH"),
+    ("ssh-copy-key <user@host>", "ssh-copy-id <user@host>", "Salin public key SSH ke remote server agar login tanpa password"),
+
+    # ── IP, Routing & LAN Discovery ──
     ("my-ip-public", "curl -s ifconfig.me && echo", "Cek alamat IP publik internet saat ini"),
     ("my-ip-detail <ip>", "curl -s ipinfo.io/<ip>", "Cek detail geolokasi, kota, ISP, dan ASN dari IP address"),
     ("ip-lan-devices", "ip neigh", "List perangkat lain yang aktif di jaringan lokal / WiFi (ARP table)"),
+    ("ip-subnet-scan <subnet>", "nmap -sn <subnet>", "Scan seluruh host / IP aktif dalam satu subnet (cth: 192.168.1.0/24)"),
     ("ip-route-table", "ip route show", "Tampilkan routing table & IP gateway router default"),
+    ("ip-interface-stats", "ip -s link", "Cek statistik interface jaringan (packet drop / RX-TX errors)"),
+
+    # ── Firewall Management ──
+    ("firewall-status", "sudo firewall-cmd --list-all 2>/dev/null || sudo ufw status verbose", "Cek status firewall & daftar port yang sedang terbuka"),
+    ("firewall-open <port>", "sudo firewall-cmd --add-port=<port>/tcp --permanent && sudo firewall-cmd --reload", "Buka port TCP pada firewall Fedora / RHEL"),
+    ("firewall-ufw-open <port>", "sudo ufw allow <port>/tcp", "Buka port TCP pada firewall UFW (Ubuntu / Debian)"),
+
+    # ── Connectivity & Latency ──
     ("trace-route <host>", "traceroute <host>", "Lacak rute hop perjalanan paket jaringan menuju target"),
     ("ping-test <host>", "ping -c 5 <host>", "Tes latency & stabilitas koneksi (dibatasi 5 paket)"),
+    ("ping-mtu-check <packet_size> <host>", "ping -M do -s <packet_size> <host>", "Tes ukuran MTU tanpa fragmentasi (cth: 1472)"),
     ("wifi-networks", "nmcli dev wifi list", "Scan dan list semua sinyal WiFi di sekitar"),
 ]
 
@@ -131,7 +167,6 @@ for rc in shell_rcs:
                     if "<session>" not in exec_cmd: exec_cmd += " <session>"
                     display_name += " <session>"
 
-                # Clean up category name
                 cat_clean = re.sub(r"^[0-9\.\s]+", "", current_cat)
                 if "Git" in cat_clean: cat_clean = "Git"
                 elif "Zellij" in cat_clean: cat_clean = "Zellij"
@@ -156,7 +191,6 @@ if os.path.exists(custom_path):
             if len(parts) == 2:
                 add_entry("Custom", parts[0], parts[1], parts[0])
             elif len(parts) == 3:
-                # Format: Name \t Cmd \t Desc (with or without [Cat])
                 cat = "Custom"
                 desc = parts[2]
                 if desc.startswith("[") and "]" in desc:
@@ -236,13 +270,13 @@ BEGIN { OFS="\t" }
     name = $2
     cmd = $3
     desc = $4
-    printf "%-12s \033[1;37m%-22s\033[0m │ \033[0;37m%s\033[0m\t%s\t%s\t%s\n", cat, name, desc, cmd, cat, desc
+    printf "%-12s \033[1;37m%-30s\033[0m │ \033[0;37m%s\033[0m\t%s\t%s\t%s\n", cat, name, desc, cmd, cat, desc
 }' "$DB_FILE" | fzf \
     --ansi \
     --delimiter='\t' \
     --with-nth=1 \
     --query="$INITIAL_QUERY" \
-    --height=55% \
+    --height=60% \
     --layout=reverse \
     --border=sharp \
     --border-label=" ⚡ ezysh — Command Palette " \
