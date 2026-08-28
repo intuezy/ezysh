@@ -5,14 +5,14 @@
 # License: MIT
 # ==============================================================================
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
 DB_FILE="$CONFIG_DIR/commands.tsv"
 CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
 
 mkdir -p "$CONFIG_DIR"
 
-# ── Function: Auto-Sync / Import from Shell Config ──────
+# ── Built-in Curated Defaults & Shell Sync ────────
 sync_aliases() {
     python3 - << 'PYEOF'
 import re, os
@@ -30,8 +30,44 @@ shell_rcs = [
 ]
 
 entries = []
-seen_aliases = set()
+seen_commands = set()
 
+def add_entry(cat, name, cmd, desc):
+    key = f"{cat}:{name}"
+    if key not in seen_commands:
+        seen_commands.add(key)
+        # Ensure category is formatted as [Category]
+        clean_cat = cat if cat.startswith("[") else f"[{cat}]"
+        entries.append((clean_cat, name, cmd, desc))
+
+# ── 1. Curated Gold-Standard Defaults: [Network] ────────
+network_defaults = [
+    ("port-who <port>", "lsof -i :<port>", "Cek aplikasi / PID apa yang sedang memakai port tertentu"),
+    ("port-kill <port>", "fuser -k <port>/tcp", "Paksa matikan proses yang menduduki port tertentu"),
+    ("ports-listen", "ss -tulwn", "List semua port TCP/UDP lokal yang aktif & listening"),
+    ("port-check <host> <port>", "nc -zv <host> <port>", "Uji apakah port remote di server terbuka / bisa diakses"),
+    ("dns-records <domain>", "dig <domain> ANY +noall +answer", "Cek semua record DNS domain (A, MX, TXT, NS, CNAME)"),
+    ("dns-trace <domain>", "dig +trace <domain>", "Lacak rantai resolusi DNS dari root server hingga authoritative"),
+    ("dns-ip <domain>", "dig +short <domain>", "Ambil hanya IP address publik dari suatu domain secara cepat"),
+    ("dns-reverse <ip>", "dig -x <ip> +short", "Reverse DNS: Cari nama domain asal dari sebuah IP address"),
+    ("whois-domain <domain>", "whois <domain>", "Cek informasi kepemilikan dan registrar domain"),
+    ("ssl-expiry <domain>", "openssl s_client -connect <domain>:443 -servername <domain> 2>/dev/null | openssl x509 -noout -dates -subject", "Cek tanggal kadaluarsa & subjek sertifikat SSL"),
+    ("ssl-chain <domain>", "openssl s_client -showcerts -connect <domain>:443", "Tampilkan sertifikat SSL lengkap beserta rantai CA chain"),
+    ("http-timing <url>", 'curl -s -o /dev/null -w "DNS: %{time_namelookup}s | Connect: %{time_connect}s | TTFB: %{time_starttransfer}s | Total: %{time_total}s\n" <url>', "Ukur rincian latency HTTP (DNS, TCP, TTFB, Total)"),
+    ("http-headers <url>", "curl -ILs <url>", "Ambil header HTTP lengkap dan ikuti redirect (301/302)"),
+    ("my-ip-public", "curl -s ifconfig.me && echo", "Cek alamat IP publik internet saat ini"),
+    ("my-ip-detail <ip>", "curl -s ipinfo.io/<ip>", "Cek detail geolokasi, kota, ISP, dan ASN dari IP address"),
+    ("ip-lan-devices", "ip neigh", "List perangkat lain yang aktif di jaringan lokal / WiFi (ARP table)"),
+    ("ip-route-table", "ip route show", "Tampilkan routing table & IP gateway router default"),
+    ("trace-route <host>", "traceroute <host>", "Lacak rute hop perjalanan paket jaringan menuju target"),
+    ("ping-test <host>", "ping -c 5 <host>", "Tes latency & stabilitas koneksi (dibatasi 5 paket)"),
+    ("wifi-networks", "nmcli dev wifi list", "Scan dan list semua sinyal WiFi di sekitar"),
+]
+
+for name, cmd, desc in network_defaults:
+    add_entry("Network", name, cmd, desc)
+
+# ── 2. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
         continue
@@ -50,7 +86,7 @@ for rc in shell_rcs:
             if alias_match:
                 name = alias_match.group(1).strip()
                 cmd = alias_match.group(2).strip()
-                comment = alias_match.group(3).strip() if alias_match.group(3) else f"Alias for {cmd}"
+                comment = alias_match.group(3).strip() if alias_match.group(3) else f"Alias untuk {cmd}"
                 
                 # Smart annotation for interactive parameter replacement
                 display_name = name
@@ -95,21 +131,21 @@ for rc in shell_rcs:
                     if "<session>" not in exec_cmd: exec_cmd += " <session>"
                     display_name += " <session>"
 
-                if name not in seen_aliases:
-                    seen_aliases.add(name)
-                    entries.append((display_name, exec_cmd, f"[{current_cat}] {comment}"))
+                # Clean up category name
+                cat_clean = re.sub(r"^[0-9\.\s]+", "", current_cat)
+                if "Git" in cat_clean: cat_clean = "Git"
+                elif "Zellij" in cat_clean: cat_clean = "Zellij"
+                elif "Systemd" in cat_clean: cat_clean = "Systemd"
+                elif "DNF" in cat_clean or "Package" in cat_clean: cat_clean = "Package"
+                elif "Monitor" in cat_clean or "Process" in cat_clean or "Disk" in cat_clean: cat_clean = "System"
+                elif "File" in cat_clean or "Eza" in cat_clean or "Bat" in cat_clean: cat_clean = "File"
+                elif "Nav" in cat_clean or "Quick" in cat_clean: cat_clean = "Nav"
+                elif "Web" in cat_clean or "Dev" in cat_clean: cat_clean = "Dev"
+                elif "Network" in cat_clean or "IP" in cat_clean: cat_clean = "Network"
 
-# Extra helpful utilities if not present
-extras = [
-    ("playerctl play-pause", "playerctl play-pause", "[Music] Play / Pause current track"),
-    ("playerctl next", "playerctl next", "[Music] Next track"),
-    ("playerctl previous", "playerctl previous", "[Music] Previous track"),
-]
-for disp, c, desc in extras:
-    if disp not in seen_aliases:
-        entries.append((disp, c, desc))
+                add_entry(cat_clean, display_name, exec_cmd, comment)
 
-# Append Custom User Commands from custom.tsv
+# ── 3. Append Custom User Commands from custom.tsv ──────
 if os.path.exists(custom_path):
     with open(custom_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
@@ -118,14 +154,22 @@ if os.path.exists(custom_path):
                 continue
             parts = line.split("\t")
             if len(parts) == 2:
-                entries.append((parts[0], parts[1], f"[Custom] {parts[0]}"))
-            elif len(parts) >= 3:
-                entries.append((parts[0], parts[1], parts[2]))
+                add_entry("Custom", parts[0], parts[1], parts[0])
+            elif len(parts) == 3:
+                # Format: Name \t Cmd \t Desc (with or without [Cat])
+                cat = "Custom"
+                desc = parts[2]
+                if desc.startswith("[") and "]" in desc:
+                    cat = desc.split("]")[0].replace("[", "").strip()
+                    desc = desc.split("]")[1].strip()
+                add_entry(cat, parts[0], parts[1], desc)
+            elif len(parts) >= 4:
+                add_entry(parts[0], parts[1], parts[2], parts[3])
 
 os.makedirs(ezysh_dir, exist_ok=True)
 with open(db_path, "w", encoding="utf-8") as f:
-    for item in entries:
-        f.write(f"{item[0]}\t{item[1]}\t{item[2]}\n")
+    for cat, name, cmd, desc in entries:
+        f.write(f"{cat}\t{name}\t{cmd}\t{desc}\n")
 PYEOF
 }
 
@@ -141,7 +185,7 @@ case "$1" in
     -s|--sync)
         sync_aliases
         count=$(wc -l < "$DB_FILE" 2>/dev/null || echo 0)
-        echo "⚡ ezysh: Successfully synced $count commands from shell config!"
+        echo "⚡ ezysh: Successfully synced $count commands into database!"
         exit 0
         ;;
     -e|--edit)
@@ -161,10 +205,12 @@ case "$1" in
     -h|--help)
         echo "ezysh — The aesthetic, intuitive command palette for your shell."
         echo ""
-        echo "Usage: ezysh [options]"
+        echo "Usage: ezysh [options] [query]"
+        echo ""
+        echo "Tip: Type 'network', 'git', 'docker', 'sys' to instantly filter by category!"
         echo ""
         echo "Options:"
-        echo "  -s, --sync     Sync aliases and comments from your ~/.zshrc or ~/.bashrc"
+        echo "  -s, --sync     Sync aliases and curated defaults into database"
         echo "  -e, --edit     Open custom commands file for manual editing"
         echo "  -l, --list     Print all stored commands to standard output"
         echo "  -v, --version  Show version"
@@ -179,36 +225,41 @@ if ! command -v fzf &>/dev/null; then
     exit 1
 fi
 
-# ── Interactive FZF Command Palette ───────────────
+INITIAL_QUERY="$1"
+
+# ── Interactive Category-First FZF Palette ────────
 selected=$(awk -F'\t' '
 BEGIN { OFS="\t" }
 /^#/ || /^$/ { next }
 {
-    if (NF == 2) {
-        printf "%-22s │ %s\t%s\t%s\n", $1, $2, $1, $2
-    } else if (NF >= 3) {
-        printf "%-22s │ %s\t%s\t%s\n", $1, $3, $2, $3
-    }
+    cat = $1
+    name = $2
+    cmd = $3
+    desc = $4
+    printf "%-12s \033[1;37m%-22s\033[0m │ \033[0;37m%s\033[0m\t%s\t%s\t%s\n", cat, name, desc, cmd, cat, desc
 }' "$DB_FILE" | fzf \
+    --ansi \
     --delimiter='\t' \
     --with-nth=1 \
+    --query="$INITIAL_QUERY" \
     --height=55% \
     --layout=reverse \
     --border=sharp \
     --border-label=" ⚡ ezysh — Command Palette " \
     --border-label-pos=3 \
-    --prompt=" ❯ " \
+    --prompt="   " \
     --pointer="❯" \
     --marker="●" \
     --color="bg:-1,bg+:#342f4b,fg:#7f849c,fg+:#e6e6fa,hl:#f38ba8,hl+:#f38ba8,info:#7f849c,prompt:#cba6f7,pointer:#cba6f7,marker:#a6e3a1,spinner:#cba6f7,border:#342f4b,header:#7f849c" \
-    --preview="echo -e '\n\033[1;35m  ⚡ Command:\033[0m\n  \033[1;37m{2}\033[0m\n\n\033[1;34m  ℹ  Description:\033[0m\n  \033[0;37m{3}\033[0m'" \
+    --header=" [ Tip: Ketik 'network', 'git', 'dev', 'sys' untuk filter kategori ] " \
+    --preview="echo -e '\n\033[1;35m  🏷  Category:\033[0m  \033[1;36m{3}\033[0m\n\n\033[1;35m  ⚡ Command:\033[0m\n  \033[1;32m{2}\033[0m\n\n\033[1;34m  ℹ  Description:\033[0m\n  \033[0;37m{4}\033[0m'" \
     --preview-window=right:44%:wrap)
 
 if [ -z "$selected" ]; then
     exit 0
 fi
 
-# Extract execution command
+# Extract execution command (column 2 in tab delimiter)
 cmd=$(echo "$selected" | awk -F'\t' '{print $2}')
 
 # ── Interactive Parameter Replacement ─────────────
