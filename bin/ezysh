@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# ezysh — The aesthetic, intuitive command palette & alias launcher for your shell.
+# Author: intuezy (https://github.com/intuezy)
+# License: MIT
+# ==============================================================================
+
+VERSION="1.0.0"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
+DB_FILE="$CONFIG_DIR/commands.tsv"
+CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
+
+mkdir -p "$CONFIG_DIR"
+
+# ── Function: Auto-Sync / Import from Shell Config ──────
+sync_aliases() {
+    python3 - << 'PYEOF'
+import re, os
+
+home = os.path.expanduser("~")
+config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.join(home, ".config"))
+ezysh_dir = os.path.join(config_dir, "ezysh")
+db_path = os.path.join(ezysh_dir, "commands.tsv")
+custom_path = os.path.join(ezysh_dir, "custom.tsv")
+
+shell_rcs = [
+    os.path.join(home, ".zshrc"),
+    os.path.join(home, ".bashrc"),
+    os.path.join(config_dir, "fish", "config.fish")
+]
+
+entries = []
+seen_aliases = set()
+
+for rc in shell_rcs:
+    if not os.path.exists(rc):
+        continue
+    with open(rc, "r", encoding="utf-8", errors="ignore") as f:
+        current_cat = "General"
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            cat_match = re.match(r"^#\s*[─\-\=]+\s*(.*?)\s*[─\-\=]+", line)
+            if cat_match:
+                current_cat = cat_match.group(1).strip()
+                continue
+            
+            alias_match = re.match(r"^alias\s+([^=]+)=[\"\x27](.*?)[\"\x27](?:\s*#\s*(.*))?$", line)
+            if alias_match:
+                name = alias_match.group(1).strip()
+                cmd = alias_match.group(2).strip()
+                comment = alias_match.group(3).strip() if alias_match.group(3) else f"Alias for {cmd}"
+                
+                # Smart annotation for interactive parameter replacement
+                display_name = name
+                exec_cmd = cmd
+                if name in ["gco", "gsw", "gb"]:
+                    if "<branch>" not in exec_cmd: exec_cmd += " <branch>"
+                    display_name += " <branch>"
+                elif name in ["din", "drem", "dinfo"]:
+                    if "<package>" not in exec_cmd: exec_cmd += " <package>"
+                    display_name += " <package>"
+                elif name in ["psg", "pk"]:
+                    if "<process_name>" not in exec_cmd: exec_cmd += " <process_name>"
+                    display_name += " <process_name>"
+                elif name in ["k9"]:
+                    if "<pid>" not in exec_cmd: exec_cmd += " <pid>"
+                    display_name += " <pid>"
+                elif name in ["scs", "scr", "scstart", "scstop", "sce", "jl"]:
+                    if "<service>" not in exec_cmd: exec_cmd += " <service>"
+                    display_name += " <service>"
+                elif name in ["jfu"]:
+                    if "<unit>" not in exec_cmd: exec_cmd += " <unit>"
+                    display_name += " <unit>"
+                elif name in ["gcm"]:
+                    if "<message>" not in exec_cmd: exec_cmd += ' "<message>"'
+                    display_name += ' "<message>"'
+                elif name in ["cat", "rm", "grs"]:
+                    if "<file>" not in exec_cmd: exec_cmd += " <file>"
+                    display_name += " <file>"
+                elif name in ["cp", "mv"]:
+                    if "<src>" not in exec_cmd: exec_cmd += " <src> <dst>"
+                    display_name += " <src> <dst>"
+                elif name in ["mkd"]:
+                    if "<folder>" not in exec_cmd: exec_cmd += " <folder>"
+                    display_name += " <folder>"
+                elif name in ["untar"]:
+                    if "<file.tar>" not in exec_cmd: exec_cmd += " <file.tar>"
+                    display_name += " <file.tar>"
+                elif name in ["ping"]:
+                    if "<host>" not in exec_cmd: exec_cmd += " <host>"
+                    display_name += " <host>"
+                elif name in ["zja", "zjk", "zjn", "zjd"]:
+                    if "<session>" not in exec_cmd: exec_cmd += " <session>"
+                    display_name += " <session>"
+
+                if name not in seen_aliases:
+                    seen_aliases.add(name)
+                    entries.append((display_name, exec_cmd, f"[{current_cat}] {comment}"))
+
+# Extra helpful utilities if not present
+extras = [
+    ("playerctl play-pause", "playerctl play-pause", "[Music] Play / Pause current track"),
+    ("playerctl next", "playerctl next", "[Music] Next track"),
+    ("playerctl previous", "playerctl previous", "[Music] Previous track"),
+]
+for disp, c, desc in extras:
+    if disp not in seen_aliases:
+        entries.append((disp, c, desc))
+
+# Append Custom User Commands from custom.tsv
+if os.path.exists(custom_path):
+    with open(custom_path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) == 2:
+                entries.append((parts[0], parts[1], f"[Custom] {parts[0]}"))
+            elif len(parts) >= 3:
+                entries.append((parts[0], parts[1], parts[2]))
+
+os.makedirs(ezysh_dir, exist_ok=True)
+with open(db_path, "w", encoding="utf-8") as f:
+    for item in entries:
+        f.write(f"{item[0]}\t{item[1]}\t{item[2]}\n")
+PYEOF
+}
+
+# ── Auto-sync if database is missing or outdated ──
+SHELL_RC="$HOME/.zshrc"
+[ ! -f "$SHELL_RC" ] && SHELL_RC="$HOME/.bashrc"
+if [ ! -f "$DB_FILE" ] || { [ -f "$SHELL_RC" ] && [ "$SHELL_RC" -nt "$DB_FILE" ]; }; then
+    sync_aliases
+fi
+
+# ── CLI Arguments Handling ────────────────────────
+case "$1" in
+    -s|--sync)
+        sync_aliases
+        count=$(wc -l < "$DB_FILE" 2>/dev/null || echo 0)
+        echo "⚡ ezysh: Successfully synced $count commands from shell config!"
+        exit 0
+        ;;
+    -e|--edit)
+        [ ! -f "$CUSTOM_FILE" ] && echo "# Add custom commands: Name<TAB>Command<TAB>[Category] Description" > "$CUSTOM_FILE"
+        ${EDITOR:-nano} "$CUSTOM_FILE"
+        sync_aliases
+        exit 0
+        ;;
+    -l|--list)
+        cat "$DB_FILE"
+        exit 0
+        ;;
+    -v|--version)
+        echo "ezysh v$VERSION by intuezy"
+        exit 0
+        ;;
+    -h|--help)
+        echo "ezysh — The aesthetic, intuitive command palette for your shell."
+        echo ""
+        echo "Usage: ezysh [options]"
+        echo ""
+        echo "Options:"
+        echo "  -s, --sync     Sync aliases and comments from your ~/.zshrc or ~/.bashrc"
+        echo "  -e, --edit     Open custom commands file for manual editing"
+        echo "  -l, --list     Print all stored commands to standard output"
+        echo "  -v, --version  Show version"
+        echo "  -h, --help     Show this help message"
+        exit 0
+        ;;
+esac
+
+# Check for fzf dependency
+if ! command -v fzf &>/dev/null; then
+    echo "ezysh: fzf is required but not installed. Please install fzf first." >&2
+    exit 1
+fi
+
+# ── Interactive FZF Command Palette ───────────────
+selected=$(awk -F'\t' '
+BEGIN { OFS="\t" }
+/^#/ || /^$/ { next }
+{
+    if (NF == 2) {
+        printf "%-22s │ %s\t%s\t%s\n", $1, $2, $1, $2
+    } else if (NF >= 3) {
+        printf "%-22s │ %s\t%s\t%s\n", $1, $3, $2, $3
+    }
+}' "$DB_FILE" | fzf \
+    --delimiter='\t' \
+    --with-nth=1 \
+    --height=55% \
+    --layout=reverse \
+    --border=sharp \
+    --border-label=" ⚡ ezysh — Command Palette " \
+    --border-label-pos=3 \
+    --prompt=" ❯ " \
+    --pointer="❯" \
+    --marker="●" \
+    --color="bg:-1,bg+:#342f4b,fg:#7f849c,fg+:#e6e6fa,hl:#f38ba8,hl+:#f38ba8,info:#7f849c,prompt:#cba6f7,pointer:#cba6f7,marker:#a6e3a1,spinner:#cba6f7,border:#342f4b,header:#7f849c" \
+    --preview="echo -e '\n\033[1;35m  ⚡ Command:\033[0m\n  \033[1;37m{2}\033[0m\n\n\033[1;34m  ℹ  Description:\033[0m\n  \033[0;37m{3}\033[0m'" \
+    --preview-window=right:44%:wrap)
+
+if [ -z "$selected" ]; then
+    exit 0
+fi
+
+# Extract execution command
+cmd=$(echo "$selected" | awk -F'\t' '{print $2}')
+
+# ── Interactive Parameter Replacement ─────────────
+if [[ "$cmd" =~ \<([^>]+)\> ]] && [ -t 0 ] && [ -t 1 ]; then
+    placeholders=$(echo "$cmd" | grep -o '<[^>]*>' | sort -u)
+    for p in $placeholders; do
+        param_clean="${p:1:-1}"
+        echo -ne "\033[1;35m  ⚡ Enter \033[1;32m$p\033[1;35m (press Enter to skip): \033[0m" > /dev/tty
+        read -r user_val < /dev/tty
+        if [ -n "$user_val" ]; then
+            cmd="${cmd//$p/$user_val}"
+        fi
+    done
+fi
+
+echo "$cmd"
