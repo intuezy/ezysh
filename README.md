@@ -1,12 +1,11 @@
 <div align="center">
 
 # ⚡ ezysh
-### *The aesthetic, intuitive command palette & alias launcher for your terminal.*
+### *The aesthetic, intuitive command palette & alias launcher for your shell.*
 
-[![CI](https://github.com/intuezy/ezysh/actions/workflows/ci.yml/badge.svg)](https://github.com/intuezy/ezysh/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
 [![Shell: Zsh | Bash | Fish](https://img.shields.io/badge/Shell-Zsh%20%7C%20Bash%20%7C%20Fish-blue.svg)]()
-[![Platform: Linux | macOS](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-black.svg)]()
+[![Platform: Linux | macOS | WSL](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20WSL-black.svg)]()
 
 *Stop forgetting your complex one-liners, aliases, and shell recipes. Jump into your personal command palette with **`Ctrl + K`**.*
 
@@ -44,6 +43,20 @@ Terminal productivity shouldn't mean memorizing hundreds of obscure flags and pi
 - **🛡 Safe Injection**: Injects commands directly into your prompt buffer so you can inspect/tweak them before hitting `Enter`.
 - **🌸 Deep Space Palette**: Clean typography, pixel-perfect borders, and syntax-safe preview cards.
 - **➕ Quick Add Snippets**: Add new personal commands on the fly via `ezy --add`.
+
+---
+
+## 🌐 Compatibility Matrix
+
+`ezysh` is designed to be ultra-lightweight and run seamlessly anywhere a POSIX shell and terminal exist:
+
+| Layer | Supported Environments |
+| :--- | :--- |
+| **Operating Systems** | • **Linux**: Fedora, Ubuntu, Debian, Arch, Manjaro, Pop!_OS, RHEL/CentOS, Alpine, NixOS<br/>• **macOS**: Apple Silicon (M1/M2/M3/M4) & Intel (Sonoma, Ventura, Monterey)<br/>• **Windows**: Windows Subsystem for Linux (WSL / WSL2)<br/>• **BSD**: FreeBSD, OpenBSD |
+| **Shells** | • **Zsh** (Vanilla, Oh-My-Zsh, Zinit, Sheldon, Antigen — Emacs & Vi mode)<br/>• **Bash** (4.0+ with `bind -x`)<br/>• **Fish** (3.0+ native) |
+| **Terminals** | Ghostty, Kitty, Alacritty, WezTerm, iTerm2, Windows Terminal, GNOME Terminal, Konsole, Foot, Rio |
+| **Multiplexers** | Zellij, tmux, GNU Screen |
+| **Architectures** | `x86_64` (Intel/AMD), `arm64` / `aarch64` (Apple Silicon, Raspberry Pi, AWS Graviton) |
 
 ---
 
