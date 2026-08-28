@@ -5,7 +5,7 @@
 # License: MIT
 # ==============================================================================
 
-VERSION="1.4.0"
+VERSION="1.5.0"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
 DB_FILE="$CONFIG_DIR/commands.tsv"
 CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
@@ -84,7 +84,47 @@ def add_entry(cat, name, cmd, desc):
         clean_cat = cat if cat.startswith("[") else f"[{cat}]"
         entries.append((clean_cat, name, cmd, desc))
 
-# ── 1. Curated Gold-Standard Defaults: [Network] Suite ──
+# ── 1. Curated Gold-Standard Defaults: [Linux] Essentials ──
+linux_defaults = [
+    # ── Navigation & Disk Usage ──
+    ("disk-usage-top", "du -sh * 2>/dev/null | sort -h", "Urutkan folder/file terbesar di direktori saat ini (Cari pemakan disk)"),
+    ("disk-partitions", "df -hT", "Cek sisa kapasitas partisi disk & tipe filesystem (ext4/btrfs/xfs)"),
+    ("cd-previous", "cd -", "Kembali ke direktori sebelumnya (seperti tombol back)"),
+    ("grep-text-all <query>", "grep -rn \"<query>\" .", "Cari teks di dalam semua file secara rekursif + nomor baris"),
+    ("find-modified-24h", "find . -type f -mtime -1", "Cari semua file yang diubah dalam 24 jam terakhir"),
+    ("rsync-copy <src> <dst>", "rsync -avzP <src> <dst>", "Copy file super cepat dengan progress bar & resume capability"),
+
+    # ── Permissions & Ownership ──
+    ("chown-take-ownership <dir>", "sudo chown -R $USER:$USER <dir>", "Ambil alih kepemilikan folder yang terkunci akses root"),
+    ("chmod-executable <file>", "chmod +x <file>", "Beri izin eksekusi pada script bash / binary"),
+    ("my-user-groups", "id && groups", "Cek identitas user & group saat ini (misal cek akses docker/wheel)"),
+    ("check-dir-permission <dir>", "ls -ld <dir>", "Cek izin permission direktori itu sendiri tanpa list isinya"),
+
+    # ── Systemd & Service Management ──
+    ("services-failed", "systemctl --failed", "List semua service yang crash atau gagal start saat booting"),
+    ("service-enable-now <service>", "sudo systemctl enable --now <service>", "Auto-start saat boot sekaligus langsung jalankan service sekarang"),
+    ("service-logs-live <service>", "journalctl -u <service> -f", "Pantau live log error service tertentu secara realtime"),
+    ("system-errors-boot", "journalctl -p 3 -xb", "Hanya tampilkan log error kritis (Priority 3) dari boot saat ini"),
+
+    # ── Process & Performance ──
+    ("pkill-by-name <nama>", "pkill -f <nama>", "Tutup paksa semua proses berdasarkan namanya (cth: pkill -f node)"),
+    ("ram-usage", "free -h", "Cek sisa penggunaan memori RAM dan Swap"),
+    ("cpu-load-uptime", "uptime", "Cek uptime sistem & rata-rata beban CPU (Load average 1m, 5m, 15m)"),
+
+    # ── Config & Text Power Tools ──
+    ("clean-config-read <file>", "grep -v \"^#\" <file> | grep -v \"^$\"", "Baca file konfigurasi bersih tanpa komentar # dan baris kosong"),
+    ("tail-log-live <file>", "tail -f <file>", "Pantau baris log yang terus bertambah secara realtime"),
+    ("sudo-write-file <file> <text>", "echo \"<text>\" | sudo tee -a <file>", "Tulis teks ke file sistem dengan hak root via sudo tee"),
+
+    # ── Hardware & Storage ──
+    ("lsblk-layout", "lsblk -f", "Peta visual seluruh harddisk, partisi, mountpoint & UUID"),
+    ("kernel-usb-logs", "dmesg -T | grep -i \"usb\\|error\" | tail -n 30", "Cek log kernel hardware (Deteksi flashdisk/SSD yang error)"),
+]
+
+for name, cmd, desc in linux_defaults:
+    add_entry("Linux", name, cmd, desc)
+
+# ── 2. Curated Gold-Standard Defaults: [Network] Suite ──
 network_defaults = [
     ("case-kill-port <port>", "kill -9 $(lsof -t -i :<port>)", "Otomatis cari PID & paksa matikan proses yang menduduki port"),
     ("case-top-connected-ips", "ss -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10", "Deteksi Top 10 IP koneksi terbanyak ke server (Investigasi DDoS/Traffic)"),
@@ -151,47 +191,41 @@ network_defaults = [
 for name, cmd, desc in network_defaults:
     add_entry("Network", name, cmd, desc)
 
-# ── 2. Curated Gold-Standard Defaults: [Forensics] Suite ──
+# ── 3. Curated Gold-Standard Defaults: [Forensics] Suite ──
 forensics_defaults = [
-    # ── Live System & Memory Forensics ──
     ("case-proc-deleted-running", "ls -l /proc/*/exe 2>/dev/null | grep '(deleted)'", "Deteksi proses berjalan yang file binary aslinya sudah terhapus di disk"),
     ("case-proc-env-strings <pid>", "strings /proc/<pid>/environ | tr '\\0' '\\n'", "Ekstrak environment variables & secret keys proses dari /proc"),
     ("case-proc-network-listen", "sudo lsof -i -P -n | grep LISTEN", "Pemetaan lengkap proses aktif yang membuka port listening"),
     ("proc-open-files <pid>", "lsof -p <pid>", "Audit handle file & koneksi socket dari suatu PID proses"),
     ("case-memory-dump-process <pid> <output_file>", "sudo gcore -o <output_file> <pid>", "Dump snapshot memori RAM dari PID proses tertentu"),
 
-    # ── Log Investigation & Timeline ──
     ("case-failed-ssh-top-ips", "journalctl -u sshd --no-pager | grep -i \"Failed password\" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 20", "Top 20 IP penyerang yang gagal login SSH (Brute-force audit)"),
     ("case-sudo-exec-history", "journalctl _COMM=sudo -S -24h --no-pager | grep \"COMMAND=\"", "Audit timeline perintah yang dieksekusi dengan hak sudo 24 jam terakhir"),
     ("auth-log-timeline", "last -Fwx", "Riwayat lengkap timeline login & logout pengguna"),
     ("case-wtmp-raw-dump", "utmpdump /var/log/wtmp | tail -n 30", "Dump rekaman raw log sesi autentikasi /var/log/wtmp"),
 
-    # ── File Integrity & Timeline ──
     ("case-hash-tree-sha256 <dir>", "find <dir> -type f -exec sha256sum {} + | tee hashes.sha256", "Buat baseline hash SHA256 seluruh file untuk integritas data"),
     ("case-find-modified-recent <dir> <minutes>", "find <dir> -type f -mmin -<minutes> -ls", "Cari file yang baru dibuat atau diubah dalam N menit terakhir"),
     ("case-find-hidden-executables <dir>", "find <dir> -type f -name \".*\" -perm /111 -ls 2>/dev/null", "Deteksi file executable tersembunyi (berawalan titik)"),
     ("case-find-suid-binaries", "find / -perm -4000 -type f -exec ls -la {} + 2>/dev/null", "Audit binary SUID (Pemeriksaan celah Privilege Escalation)"),
 
-    # ── Artifact & Metadata Inspection ──
     ("case-strings-suspicious <file>", "strings -a <file> | grep -Ei \"https?://|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+|/bin/sh|base64|cmd\\.exe|powershell\"", "Ekstrak IoC (IP, URL, command shell) dari file binary mentah"),
     ("exif-metadata <file>", "exiftool <file>", "Ekstrak seluruh metadata tersembunyi dokumen / gambar"),
     ("file-magic-check <file>", "file -b --mime-type <file>", "Periksa MIME type & magic bytes asli file terlepas dari ekstensinya"),
     ("binwalk-analyze <file>", "binwalk <file>", "Analisis dan ekstrak komponen tersembunyi di dalam file / firmware"),
 
-    # ── Persistence & Backdoor Hunting ──
     ("case-audit-all-crontabs", "for user in $(cut -f1 -d: /etc/passwd); do echo \"=== User: $user ===\"; crontab -u $user -l 2>/dev/null; done; ls -la /etc/cron*", "Audit scheduled task cron seluruh user untuk mencari persistence backdoor"),
     ("case-audit-systemd-timers", "systemctl list-timers --all", "List seluruh timer service systemd yang terjadwal aktif"),
     ("case-audit-autostart-services", "systemctl list-unit-files --type=service --state=enabled", "List seluruh service yang otomatis aktif saat boot sistem"),
     ("case-audit-ssh-authorized-keys", "grep -H \"\" /home/*/.ssh/authorized_keys /root/.ssh/authorized_keys 2>/dev/null", "Periksa kunci publik SSH yang terdaftar di seluruh home user"),
 
-    # ── Storage Forensics ──
     ("disk-image-dd <source_dev> <output_img>", "sudo dd if=<source_dev> of=<output_img> bs=64K status=progress conv=noerror,sync", "Buat image bitstream raw forensik sektor-per-sektor"),
 ]
 
 for name, cmd, desc in forensics_defaults:
     add_entry("Forensics", name, cmd, desc)
 
-# ── 3. Parse User Shell Configuration (.zshrc / .bashrc) ──
+# ── 4. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
         continue
@@ -268,7 +302,7 @@ for rc in shell_rcs:
 
                 add_entry(cat_clean, display_name, exec_cmd, comment)
 
-# ── 4. Append Custom User Commands from custom.tsv ──────
+# ── 5. Append Custom User Commands from custom.tsv ──────
 if os.path.exists(custom_path):
     with open(custom_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
@@ -329,7 +363,7 @@ case "$1" in
         echo ""
         echo "Usage: ezysh [options] [query]"
         echo ""
-        echo "Tip: Type 'network', 'forensics', 'git', 'sys' to filter by category!"
+        echo "Tip: Type 'linux', 'network', 'forensics', 'git', 'sys' to filter by category!"
         echo "Tip: Type 'case' to find end-to-end multi-step workflow recipes!"
         echo ""
         echo "Options:"
