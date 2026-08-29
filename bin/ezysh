@@ -280,6 +280,42 @@ forensics_defaults = [
 for name, cmd, desc in forensics_defaults:
     add_entry("Forensics", name, cmd, desc)
 
+# ── 11. [Power] & Battery Management Suite ──
+power_defaults = [
+    ("battery-status", "upower -i $(upower -e | grep 'BAT' | head -n 1) 2>/dev/null || acpi -V 2>/dev/null", "Cek kapasitas sisa, status charging, voltage & health baterai laptop"),
+    ("battery-health", "cat /sys/class/power_supply/BAT*/capacity /sys/class/power_supply/BAT*/status 2>/dev/null", "Cek persentase baterai & status pengisian daya langsung dari kernel"),
+    ("battery-cycles", "cat /sys/class/power_supply/BAT*/cycle_count 2>/dev/null || upower -d | grep -i cycle", "Cek jumlah siklus pengisian daya baterai laptop (Cycle count)"),
+    ("power-top-consumers", "sudo powertop", "Diagnosa & audit aplikasi/hardware yang paling boros baterai"),
+    ("power-profile-get", "powerprofilesctl get", "Cek profil daya aktif laptop (performance / balanced / power-saver)"),
+    ("power-profile-set <mode>", "powerprofilesctl set <mode>", "Ganti profil daya laptop (performance / balanced / power-saver)"),
+    ("power-saver-on", "powerprofilesctl set power-saver", "Aktifkan mode hemat daya baterai maksimal (Power Saver)"),
+    ("power-balanced-on", "powerprofilesctl set balanced", "Aktifkan mode daya seimbang default (Balanced)"),
+    ("power-performance-on", "powerprofilesctl set performance", "Aktifkan mode performa tinggi (Performance)"),
+    ("brightness-get", "brightnessctl get 2>/dev/null || cat /sys/class/backlight/*/brightness 2>/dev/null", "Cek tingkat kecerahan layar monitor saat ini"),
+    ("brightness-set <pct>", "brightnessctl set <pct>%", "Atur persentase kecerahan layar laptop (cth: 50%)"),
+    ("system-suspend", "systemctl suspend", "Tidurkan sistem laptop (Sleep / Suspend)"),
+    ("system-hibernate", "systemctl hibernate", "Simpan sesi ke disk & matikan daya (Hibernate)"),
+    ("system-reboot", "systemctl reboot", "Restart komputer dengan aman"),
+    ("system-poweroff", "systemctl poweroff", "Matikan daya komputer / laptop sepenuhnya"),
+]
+for name, cmd, desc in power_defaults:
+    add_entry("Power", name, cmd, desc)
+
+# ── 12. [Hardware] Sensors & Devices Suite ──
+hardware_defaults = [
+    ("hardware-cpu-temp", "sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null", "Cek suhu temperatur CPU, GPU & motherboard realtime"),
+    ("hardware-cpu-info", "lscpu", "Informasi lengkap arsitektur CPU, core, thread & clock speed"),
+    ("hardware-pci-devices", "lspci -nnk", "Daftar seluruh perangkat bus PCI (VGA, WiFi, NVMe) & driver aktif"),
+    ("hardware-usb-devices", "lsusb", "Daftar seluruh perangkat USB yang terhubung (Keyboard, Mouse, Flashdisk)"),
+    ("hardware-ram-slots", "sudo dmidecode --type memory 2>/dev/null | grep -E \"Size:|Speed:|Type:\"", "Cek jumlah slot RAM, tipe DDR, dan frekuensi MHz terpasang"),
+    ("hardware-audio-status", "wpctl status 2>/dev/null || pactl list sinks 2>/dev/null", "Cek status perangkat output/input audio PipeWire & ALSA"),
+    ("bluetooth-scan", "bluetoothctl scan on", "Scan dan cari perangkat Bluetooth di sekitar"),
+    ("bluetooth-devices", "bluetoothctl devices", "Daftar perangkat Bluetooth yang tersimpan & terhubung"),
+    ("bluetooth-connect <mac>", "bluetoothctl connect <mac>", "Hubungkan ke perangkat Bluetooth berdasarkan MAC address"),
+]
+for name, cmd, desc in hardware_defaults:
+    add_entry("Hardware", name, cmd, desc)
+
 # ── 11. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
@@ -349,6 +385,8 @@ for rc in shell_rcs:
                 elif "Systemd" in cat_clean: cat_clean = "Systemd"
                 elif "DNF" in cat_clean or "Package" in cat_clean: cat_clean = "Package"
                 elif "Monitor" in cat_clean or "Process" in cat_clean or "Disk" in cat_clean: cat_clean = "System"
+                elif "Battery" in cat_clean or "Power" in cat_clean: cat_clean = "Power"
+                elif "Hardware" in cat_clean or "Sensor" in cat_clean or "Bluetooth" in cat_clean: cat_clean = "Hardware"
                 elif "File" in cat_clean or "Eza" in cat_clean or "Bat" in cat_clean: cat_clean = "File"
                 elif "Nav" in cat_clean or "Quick" in cat_clean: cat_clean = "Nav"
                 elif "Web" in cat_clean or "Dev" in cat_clean: cat_clean = "Dev"
