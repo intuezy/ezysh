@@ -94,7 +94,61 @@ node_defaults = [
 for name, cmd, desc in node_defaults:
     add_entry("Node", name, cmd, desc)
 
-# ── 2. Web Dev: [Database] (Prisma, PostgreSQL, Redis) ──
+# ── 2. Language: [Go] (Golang Power Suite) ──
+go_defaults = [
+    ("go-tidy-vendor", "go mod tidy && go mod vendor", "Rapikan dependensi go.mod & download seluruh module ke folder vendor/"),
+    ("go-test-race", "go test -v -race ./...", "Jalankan seluruh unit test dengan deteksi data race condition"),
+    ("go-test-cover-html", "go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out", "Analisis visual code coverage unit test di browser"),
+    ("go-benchmark", "go test -bench=. -benchmem ./...", "Ukur kecepatan eksekusi & alokasi memori fungsi Go"),
+    ("go-build-cross-linux <binary>", "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags=\"-s -w\" -o <binary>", "Build binary standalone statis stripped super kecil untuk deploy server"),
+    ("go-build-cross-windows <binary>", "CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags=\"-s -w\" -o <binary>.exe", "Cross-compile binary executable untuk Windows x64"),
+    ("go-vet-lint", "go vet ./... && golangci-lint run 2>/dev/null || true", "Analisis static check bug & style kode Go"),
+    ("go-hot-reload", "air || reflex -r '\\.go$' -s -- go run .", "Jalankan server Go dengan auto-restart saat kodingan diedit"),
+    ("go-list-updates", "go list -u -m all", "Cek module / library Go yang memiliki update versi baru"),
+    ("go-clean-cache", "go clean -modcache -cache", "Bersihkan seluruh build cache & module cache Go"),
+]
+for name, cmd, desc in go_defaults:
+    add_entry("Go", name, cmd, desc)
+
+# ── 3. Language: [Rust] (Cargo & Rust Power Suite) ──
+rust_defaults = [
+    ("cargo-check-fast", "cargo check --workspace", "Type-check super cepat seluruh workspace tanpa buat binary"),
+    ("cargo-clippy-pedantic", "cargo clippy --all-targets -- -D warnings", "Linting kode Rust ketat untuk mendeteksi anti-pattern"),
+    ("cargo-release-build", "cargo build --release", "Kompilasi binary mode release dengan optimasi penuh"),
+    ("cargo-test-nocapture", "cargo test -- --nocapture", "Jalankan unit & integration test dengan output println! terlihat"),
+    ("cargo-watch-run", "cargo watch -x run", "Auto-recompile & restart aplikasi Rust setiap file disimpan"),
+    ("cargo-deps-tree", "cargo tree -d", "Deteksi dependensi duplikat dalam crate graph"),
+    ("cargo-audit-security", "cargo audit", "Scan celah keamanan / vulnerabilitas pada dependensi crate"),
+    ("cargo-clean-target", "cargo clean", "Hapus folder target/ untuk membebaskan gigabyte ruang disk"),
+]
+for name, cmd, desc in rust_defaults:
+    add_entry("Rust", name, cmd, desc)
+
+# ── 4. Language: [Python] (Modern Python & FastAPI Suite) ──
+python_defaults = [
+    ("py-venv-create <name>", "python3 -m venv <name>", "Buat virtual environment Python baru"),
+    ("py-venv-activate <name>", "source <name>/bin/activate", "Aktifkan virtual environment Python"),
+    ("py-reqs-export", "pip freeze > requirements.txt", "Export seluruh library terpasang ke requirements.txt"),
+    ("py-reqs-install", "pip install -r requirements.txt", "Install seluruh dependencies dari requirements.txt"),
+    ("py-lint-ruff", "ruff check . --fix && ruff format .", "Linter & formatter Python super cepat pengganti flake8/black"),
+    ("py-test-coverage", "pytest --cov=. --cov-report=term-missing", "Jalankan test suite pytest dengan laporan coverage baris"),
+    ("py-fastapi-dev <app_module>", "uvicorn <app_module>:app --reload --port 8000", "Jalankan server FastAPI ASGI dengan auto-reload"),
+    ("py-clean-pycache", "find . -type d -name \"__pycache__\" -exec rm -rf {} +", "Bersihkan seluruh folder __pycache__ dan file .pyc"),
+]
+for name, cmd, desc in python_defaults:
+    add_entry("Python", name, cmd, desc)
+
+# ── 5. Language: [PHP] (Laravel & Composer Suite) ──
+php_defaults = [
+    ("artisan-migrate-fresh", "php artisan migrate:fresh --seed", "Reset total database, jalankan migrasi ulang & isi dummy seeder"),
+    ("artisan-route-list", "php artisan route:list", "Lihat seluruh endpoint URL, method & controller Laravel"),
+    ("artisan-clear-all", "php artisan optimize:clear", "Bersihkan seluruh cache config, route, view & compiled Laravel"),
+    ("composer-clean-install", "rm -rf vendor composer.lock && composer install", "Nuke dan install ulang seluruh paket PHP Composer"),
+]
+for name, cmd, desc in php_defaults:
+    add_entry("PHP", name, cmd, desc)
+
+# ── 6. Web Dev: [Database] (Prisma, PostgreSQL, Redis) ──
 db_defaults = [
     ("prisma-studio", "npx prisma studio", "Buka GUI database visual di browser via Prisma Studio"),
     ("prisma-migrate <name>", "npx prisma migrate dev --name <name>", "Buat dan jalankan migrasi skema database baru"),
@@ -106,7 +160,7 @@ db_defaults = [
 for name, cmd, desc in db_defaults:
     add_entry("Database", name, cmd, desc)
 
-# ── 3. Web Dev: [API] (Endpoint & Performance Debugging) ──
+# ── 7. Web Dev: [API] (Endpoint & Performance Debugging) ──
 api_defaults = [
     ("api-post-json <url>", "curl -s -X POST -H \"Content-Type: application/json\" -d '<json>' <url> | jq", "Kirim request POST JSON dan format rapi response-nya via jq"),
     ("api-bearer-auth <url> <token>", "curl -s -H \"Authorization: Bearer <token>\" <url> | jq", "Request API dengan Authorization Bearer Token (JWT)"),
@@ -115,7 +169,7 @@ api_defaults = [
 for name, cmd, desc in api_defaults:
     add_entry("API", name, cmd, desc)
 
-# ── 4. Web Dev: [Frontend] & Assets ──
+# ── 8. Web Dev: [Frontend] & Assets ──
 frontend_defaults = [
     ("web-serve-local <port>", "npx serve -l <port> .", "Jalankan local web server instan di folder saat ini"),
     ("web-convert-webp <input>", "cwebp -q 85 <input> -o output.webp", "Kompresi foto PNG/JPG menjadi WebP untuk optimasi web"),
@@ -123,7 +177,7 @@ frontend_defaults = [
 for name, cmd, desc in frontend_defaults:
     add_entry("Frontend", name, cmd, desc)
 
-# ── 5. Web Dev: [WebOps] ──
+# ── 9. Web Dev: [WebOps] ──
 webops_defaults = [
     ("nginx-safe-reload", "sudo nginx -t && sudo systemctl reload nginx", "Uji syntax config Nginx dulu lalu reload tanpa downtime"),
     ("nginx-tail-errors", "sudo tail -f /var/log/nginx/error.log", "Pantau log error Nginx secara realtime"),
@@ -131,7 +185,7 @@ webops_defaults = [
 for name, cmd, desc in webops_defaults:
     add_entry("WebOps", name, cmd, desc)
 
-# ── 6. [Docker] Maintenance Suite ──
+# ── 10. [Docker] Maintenance Suite ──
 docker_defaults = [
     ("docker-clean-all", "docker system prune -af --volumes", "Bebaskan puluhan GB disk dari image, container, cache & volume sampah"),
     ("docker-stop-all", "docker stop $(docker ps -aq)", "Hentikan seluruh container yang sedang berjalan sekaligus"),
@@ -387,6 +441,10 @@ for rc in shell_rcs:
                 elif "Monitor" in cat_clean or "Process" in cat_clean or "Disk" in cat_clean: cat_clean = "System"
                 elif "Battery" in cat_clean or "Power" in cat_clean: cat_clean = "Power"
                 elif "Hardware" in cat_clean or "Sensor" in cat_clean or "Bluetooth" in cat_clean: cat_clean = "Hardware"
+                elif "Go" in cat_clean or "Golang" in cat_clean: cat_clean = "Go"
+                elif "Rust" in cat_clean or "Cargo" in cat_clean: cat_clean = "Rust"
+                elif "Python" in cat_clean or "Py" in cat_clean: cat_clean = "Python"
+                elif "PHP" in cat_clean or "Laravel" in cat_clean: cat_clean = "PHP"
                 elif "File" in cat_clean or "Eza" in cat_clean or "Bat" in cat_clean: cat_clean = "File"
                 elif "Nav" in cat_clean or "Quick" in cat_clean: cat_clean = "Nav"
                 elif "Web" in cat_clean or "Dev" in cat_clean: cat_clean = "Dev"
