@@ -185,15 +185,61 @@ webops_defaults = [
 for name, cmd, desc in webops_defaults:
     add_entry("WebOps", name, cmd, desc)
 
-# ── 10. [Docker] Maintenance Suite ──
+# ── 10. [Docker] Full Production & Maintenance Suite ──
 docker_defaults = [
-    ("docker-clean-all", "docker system prune -af --volumes", "Bebaskan puluhan GB disk dari image, container, cache & volume sampah"),
+    # Containers Lifecycle & Shell
+    ("docker-ps-pretty", "docker ps --format \"table {{.ID}}\\t{{.Names}}\\t{{.Status}}\\t{{.Ports}}\"", "List container aktif dengan tampilan tabel ringkas dan rapi"),
+    ("docker-ps-all", "docker ps -a --format \"table {{.ID}}\\t{{.Names}}\\t{{.Status}}\\t{{.Image}}\"", "List semua container termasuk yang stopped / exited"),
+    ("docker-exec-sh <container>", "docker exec -it <container> /bin/sh", "Masuk ke interactive shell /bin/sh container aktif"),
+    ("docker-exec-bash <container>", "docker exec -it <container> /bin/bash", "Masuk ke interactive shell /bin/bash container aktif"),
+    ("docker-exec-root <container>", "docker exec -u 0 -it <container> /bin/sh", "Masuk ke shell container dengan hak akses superuser root"),
+    ("docker-restart-container <container>", "docker restart <container>", "Restart container tertentu"),
+    ("docker-top-processes <container>", "docker top <container>", "Lihat seluruh proses Linux yang sedang berjalan di dalam container"),
     ("docker-stop-all", "docker stop $(docker ps -aq)", "Hentikan seluruh container yang sedang berjalan sekaligus"),
     ("docker-rm-all", "docker rm -f $(docker ps -aq)", "Hapus paksa seluruh container yang ada di sistem"),
-    ("docker-exec-sh <container>", "docker exec -it <container> /bin/sh", "Langsung masuk ke dalam terminal/shell container aktif"),
+
+    # Logs & Live Debugging
     ("docker-logs-tail <container>", "docker logs -f --tail 100 <container>", "Pantau live log 100 baris terakhir dari container"),
-    ("docker-inspect-ip <container>", "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container>", "Cek alamat IP lokal container dalam jaringan Docker"),
+    ("docker-logs-timestamps <container>", "docker logs -f -t <container>", "Follow live logs container lengkap dengan timestamp ISO"),
+    ("docker-logs-since <container> <time>", "docker logs --since <time> <container>", "Filter log container sejak rentang waktu tertentu (cth: 10m, 1h, 24h)"),
+
+    # Images & Dockerfile
+    ("docker-images-pretty", "docker images --format \"table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}\\t{{.CreatedAt}}\"", "List seluruh image lokal dengan ukuran dan tanggal build"),
+    ("docker-images-dangling", "docker images -f \"dangling=true\"", "List image tidak bertuan / untagged (<none>)"),
+    ("docker-rmi-dangling", "docker rmi $(docker images -f \"dangling=true\" -q)", "Hapus seluruh image untagged (<none>) sampah"),
+    ("docker-build-nocache <tag>", "docker build --no-cache -t <tag> .", "Build image dari Dockerfile murni dari awal tanpa cache layer"),
+    ("docker-image-history <image>", "docker history --no-trunc <image>", "Inspeksi seluruh layer instruksi Dockerfile pembuat image"),
+    ("docker-image-save <image> <file.tar>", "docker save <image> | gzip > <file.tar.gz>", "Export image Docker ke file arsip tar.gz terkompresi"),
+    ("docker-image-load <file.tar>", "docker load < <file.tar.gz>", "Import image Docker dari file arsip tar.gz"),
+
+    # Docker Compose Multi-Container
+    ("docker-compose-up-daemon", "docker compose up -d", "Jalankan seluruh service compose di background (daemon)"),
+    ("docker-compose-down-volumes", "docker compose down -v", "Hentikan compose dan hapus seluruh volume database terkait"),
     ("docker-compose-rebuild", "docker compose up -d --build --force-recreate", "Rebuild dan jalankan ulang seluruh service compose secara bersih"),
+    ("docker-compose-logs-tail <service>", "docker compose logs -f --tail 100 <service>", "Pantau live log service tertentu pada docker compose"),
+    ("docker-compose-exec <service>", "docker compose exec <service> sh", "Masuk ke shell service docker compose aktif"),
+    ("docker-compose-restart <service>", "docker compose restart <service>", "Restart satu service spesifik di docker compose"),
+    ("docker-compose-ps", "docker compose ps", "Cek status kesehatan dan port seluruh service compose"),
+
+    # Networking & Inspection
+    ("docker-inspect-ip <container>", "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container>", "Cek alamat IP lokal container dalam jaringan Docker"),
+    ("docker-inspect-env <container>", "docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' <container>", "Lihat seluruh environment variable aktif di dalam container"),
+    ("docker-inspect-mounts <container>", "docker inspect -f '{{json .Mounts}}' <container> | jq .", "Inspeksi mapping volume & bind mount container via jq"),
+    ("docker-inspect-ports <container>", "docker port <container>", "Cek mapping port container ke host OS"),
+    ("docker-network-ls", "docker network ls", "List seluruh virtual network Docker yang tersedia"),
+    ("docker-network-inspect <network>", "docker network inspect <network>", "Lihat container apa saja yang terhubung dalam suatu network"),
+
+    # Volumes & File Copy
+    ("docker-cp-from <container> <src_path> <host_dst>", "docker cp <container>:<src_path> <host_dst>", "Salin file/folder dari dalam container keluar ke host"),
+    ("docker-cp-to <host_src> <container> <dst_path>", "docker cp <host_src> <container>:<dst_path>", "Salin file/folder dari host masuk ke dalam container"),
+    ("docker-volume-ls", "docker volume ls", "List seluruh persistent volume Docker"),
+    ("docker-volume-prune", "docker volume prune -f", "Hapus seluruh volume Docker yang tidak lagi digunakan container"),
+    ("docker-volume-inspect <volume>", "docker volume inspect <volume>", "Cek lokasi direktori fisik volume di filesystem host"),
+
+    # System Cleanup & Performance Metrics
+    ("docker-clean-all", "docker system prune -af --volumes", "Bebaskan puluhan GB disk dari image, container, cache & volume sampah"),
+    ("docker-clean-builder", "docker builder prune -af", "Bersihkan cache build multi-stage BuildKit pemakan disk"),
+    ("docker-disk-usage", "docker system df -v", "Analisis rincian konsumsi ruang disk oleh images, containers & volumes"),
     ("docker-stats-live", "docker stats --format \"table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.NetIO}}\"", "Monitor konsumsi CPU, RAM & Network I/O container realtime"),
 ]
 for name, cmd, desc in docker_defaults:
