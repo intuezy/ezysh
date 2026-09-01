@@ -484,6 +484,49 @@ cosmic_defaults = [
 for name, cmd, desc in cosmic_defaults:
     add_entry("COSMIC", name, cmd, desc)
 
+# ── 16. [Security] SSH, Crypto, Secrets & SSL Suite ──
+security_defaults = [
+    ("ssh-gen-ed25519", "ssh-keygen -t ed25519 -C \"$USER@$(hostname)\"", "Generate pasangan kunci SSH Ed25519 modern super aman"),
+    ("ssh-copy-remote <user@host>", "ssh-copy-id -i ~/.ssh/id_ed25519.pub <user@host>", "Copy SSH public key ke server remote untuk login tanpa password"),
+    ("ssh-test-verbose <user@host>", "ssh -vT <user@host>", "Uji koneksi SSH dengan log verbose untuk debugging auth error"),
+    ("ssh-fingerprint-hosts", "ssh-keygen -l -f ~/.ssh/known_hosts", "Lihat daftar fingerprint host SSH yang tersimpan"),
+    ("secret-gen-token <bytes>", "openssl rand -base64 <bytes>", "Generate random base64 string untuk token JWT / secret key"),
+    ("secret-gen-hex <bytes>", "openssl rand -hex <bytes>", "Generate random hexadecimal string (cth: secret API key)"),
+    ("file-encrypt-aes <file>", "openssl enc -aes-256-cbc -salt -pbkdf2 -in <file> -out <file>.enc", "Enkripsi file penting dengan algoritma AES-256-CBC"),
+    ("file-decrypt-aes <file.enc>", "openssl enc -d -aes-256-cbc -pbkdf2 -in <file.enc> -out <file>", "Dekripsi file terenkripsi AES-256-CBC kembali ke format asli"),
+    ("ssl-cert-check-expiry <domain>", "echo | openssl s_client -servername <domain> -connect <domain>:443 2>/dev/null | openssl x509 -noout -dates", "Periksa masa berlaku sertifikat SSL domain HTTPS"),
+    ("hash-sha256-check <file>", "sha256sum <file>", "Hitung nilai checksum SHA-256 file untuk verifikasi integritas"),
+    ("hash-md5-check <file>", "md5sum <file>", "Hitung nilai checksum MD5 file"),
+]
+for name, cmd, desc in security_defaults:
+    add_entry("Security", name, cmd, desc)
+
+# ── 17. [Media] FFmpeg & Image Conversion Swiss-Army Knife ──
+media_defaults = [
+    ("media-mp4-to-gif <video> <output.gif>", "ffmpeg -i <video> -vf \"fps=15,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" -loop 0 <output.gif>", "Konversi video MP4 menjadi animasi GIF berkualitas tinggi untuk README/demo"),
+    ("media-compress-discord <video> <out.mp4>", "ffmpeg -i <video> -vcodec libx264 -crf 28 -preset fast <out.mp4>", "Kompresi video MP4 agar ringan (<10MB) untuk dikirim di chat Discord/WhatsApp"),
+    ("media-extract-mp3 <video> <out.mp3>", "ffmpeg -i <video> -vn -acodec libmp3lame -q:a 2 <out.mp3>", "Ekstrak track audio dari video menjadi file MP3 berkualitas tinggi"),
+    ("media-trim-lossless <input> <start> <end> <out>", "ffmpeg -ss <start> -to <end> -i <input> -c copy <out>", "Potong durasi video secara instan tanpa re-encoding (Lossless 0.1 detik)"),
+    ("media-batch-convert-webp", "for f in *.{png,jpg,jpeg}; do [ -f \"$f\" ] && cwebp -q 85 \"$f\" -o \"${f%.*}.webp\"; done", "Konversi massal seluruh file gambar PNG/JPG dalam folder menjadi WebP"),
+    ("media-probe-metadata <file>", "ffprobe -v error -show_format -show_streams <file>", "Inspeksi metadata, resolusi, codec, bitrate, dan FPS file media"),
+]
+for name, cmd, desc in media_defaults:
+    add_entry("Media", name, cmd, desc)
+
+# ── 18. [Utility] Terminal Productivity & Daily Quickies ──
+utility_defaults = [
+    ("my-public-ip", "curl -s https://ipinfo.io | jq .", "Cek alamat IP publik, provider ISP, negara, dan lokasi geografis"),
+    ("weather-live", "curl -s wttr.in", "Lihat laporan prakiraan cuaca visual di terminal"),
+    ("weather-city <city>", "curl -s wttr.in/<city>", "Lihat prakiraan cuaca kota tertentu di terminal"),
+    ("qrcode-terminal <text>", "qrencode -t ansiutf8 \"<text>\"", "Generate QR code langsung di terminal untuk di-scan lewat kamera HP"),
+    ("speedtest-internet", "curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -", "Ukur kecepatan download, upload & latency ping koneksi internet"),
+    ("timer-countdown <mins>", "sleep $(($mins * 60)) && notify-send -u critical \"⏰ Timer Selesai!\" \"Waktu $mins menit sudah habis.\"", "Jalankan timer di background dan kirim notifikasi desktop saat selesai"),
+    ("epoch-to-datetime <timestamp>", "date -d @<timestamp>", "Konversi Unix Epoch Timestamp (detik) ke tanggal & jam lokal"),
+    ("datetime-to-epoch", "date +%s", "Ambil Unix Epoch Timestamp saat ini dalam hitungan detik"),
+]
+for name, cmd, desc in utility_defaults:
+    add_entry("Utility", name, cmd, desc)
+
 # ── 11. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
@@ -553,6 +596,9 @@ for rc in shell_rcs:
                 elif "Systemd" in cat_clean: cat_clean = "Systemd"
                 elif "Fedora" in cat_clean or "DNF" in cat_clean or "Package" in cat_clean or "RPM" in cat_clean or "Flatpak" in cat_clean: cat_clean = "Fedora"
                 elif "COSMIC" in cat_clean or "Wayland" in cat_clean: cat_clean = "COSMIC"
+                elif "Security" in cat_clean or "Crypto" in cat_clean or "SSH" in cat_clean: cat_clean = "Security"
+                elif "Media" in cat_clean or "FFmpeg" in cat_clean or "Video" in cat_clean or "Audio" in cat_clean: cat_clean = "Media"
+                elif "Utility" in cat_clean or "Util" in cat_clean or "Tools" in cat_clean: cat_clean = "Utility"
                 elif "Monitor" in cat_clean or "Process" in cat_clean or "Disk" in cat_clean: cat_clean = "System"
                 elif "Battery" in cat_clean or "Power" in cat_clean: cat_clean = "Power"
                 elif "Hardware" in cat_clean or "Sensor" in cat_clean or "Bluetooth" in cat_clean: cat_clean = "Hardware"
