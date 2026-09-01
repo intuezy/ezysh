@@ -445,6 +445,45 @@ recovery_defaults = [
 for name, cmd, desc in recovery_defaults:
     add_entry("Recovery", name, cmd, desc)
 
+# ── 14. [Fedora] DNF5, Flatpak, Btrfs & SELinux Suite ──
+fedora_defaults = [
+    ("dnf-fast-update", "sudo dnf update --refresh -y", "Refresh repositori & update seluruh paket sistem Fedora sekaligus"),
+    ("dnf-clean-all", "sudo dnf clean all && sudo dnf autoremove -y", "Bersihkan cache RPM & hapus paket orphan yang sudah tidak terpakai"),
+    ("dnf-history-list", "dnf history list", "Lihat daftar riwayat transaksi instalasi / update paket"),
+    ("dnf-history-rollback <id>", "sudo dnf history rollback <id>", "Rollback transaksi instalasi / update paket jika terjadi masalah"),
+    ("dnf-find-owner <file_path>", "dnf provides <file_path>", "Cari paket apa yang menyediakan binary atau file tertentu"),
+    ("dnf-search-package <name>", "dnf search <name>", "Cari paket RPM di seluruh repositori Fedora yang aktif"),
+    ("flatpak-update-clean", "flatpak update -y && flatpak uninstall --unused -y", "Update seluruh aplikasi Flatpak & bersihkan runtime tak terpakai"),
+    ("flatpak-list-apps", "flatpak list --app", "Daftar seluruh aplikasi Flatpak yang terpasang di sistem"),
+    ("flatpak-permission-override <app_id> <dir>", "flatpak override <app_id> --filesystem=<dir>", "Beri izin akses direktori host ke aplikasi Flatpak sandbox"),
+    ("rpm-verify-all", "rpm -Va", "Verifikasi integritas seluruh file binary sistem terhadap database RPM"),
+    ("fedora-selinux-denials", "sudo ausearch -m avc -ts recent 2>/dev/null || sudo journalctl -t setroubleshoot -n 20", "Cek log permission sistem yang diblokir oleh SELinux"),
+    ("fedora-btrfs-compress-status", "sudo compsize / 2>/dev/null || sudo btrfs filesystem usage /", "Cek rasio kompresi disk ZSTD pada filesystem Btrfs Fedora"),
+    ("fedora-btrfs-balance", "sudo btrfs balance start -dusage=50 -musage=50 /", "Seimbangkan alokasi blok data & metadata filesystem Btrfs"),
+    ("fedora-kernel-list", "rpm -q kernel-core", "Lihat versi kernel Linux yang terpasang di sistem"),
+]
+for name, cmd, desc in fedora_defaults:
+    add_entry("Fedora", name, cmd, desc)
+
+# ── 15. [COSMIC] Desktop & Wayland Compositor Suite ──
+cosmic_defaults = [
+    ("cosmic-restart-panel", "pkill -f cosmic-panel && nohup cosmic-panel >/dev/null 2>&1 &", "Restart panel COSMIC jika applet hang atau freeze"),
+    ("cosmic-restart-comp", "pkill -HUP cosmic-comp", "Kirim reload signal ke compositor COSMIC tanpa logout"),
+    ("cosmic-applets-active", "ps aux | grep cosmic-applet | grep -v grep", "Daftar seluruh applet COSMIC yang sedang berjalan di RAM"),
+    ("cosmic-applet-logs <applet>", "journalctl --user -u cosmic-applet-<applet> -f", "Pantau live log error applet COSMIC tertentu"),
+    ("cosmic-randr-status", "cosmic-randr list", "Cek status monitor, resolusi & refresh rate layar Wayland"),
+    ("cosmic-randr-mirror <disp1> <disp2>", "cosmic-randr mirror <disp1> <disp2>", "Mirror tampilan layar HDMI ke monitor laptop internal eDP"),
+    ("cosmic-settings-open <page>", "cosmic-settings <page>", "Buka halaman pengaturan COSMIC (keyboard/displays/power/appearance)"),
+    ("cosmic-shortcuts-backup", "cp ~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom ~/cosmic_shortcuts_backup.ron", "Backup seluruh konfigurasi shortcut keyboard COSMIC kustom"),
+    ("cosmic-theme-export", "tar -czvf ~/cosmic-theme-backup.tar.gz ~/.config/cosmic/com.system76.CosmicTheme*", "Export dan backup tema warna COSMIC aktif ke tar.gz"),
+    ("wayland-copy-text <file>", "wl-copy < <file>", "Salin isi file teks langsung ke clipboard Wayland"),
+    ("wayland-paste-text <out_file>", "wl-paste > <out_file>", "Paste isi clipboard Wayland ke file"),
+    ("wayland-screenshot-area", "grim -g \"$(slurp)\" ~/Pictures/screenshot_$(date +%s).png", "Screenshot area layar Wayland secara interaktif"),
+    ("wayland-pipewire-restart", "systemctl --user restart pipewire pipewire-pulse wireplumber", "Restart total audio stack & screen sharing PipeWire Wayland"),
+]
+for name, cmd, desc in cosmic_defaults:
+    add_entry("COSMIC", name, cmd, desc)
+
 # ── 11. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
@@ -512,7 +551,8 @@ for rc in shell_rcs:
                 if "Git" in cat_clean: cat_clean = "Git"
                 elif "Zellij" in cat_clean: cat_clean = "Zellij"
                 elif "Systemd" in cat_clean: cat_clean = "Systemd"
-                elif "DNF" in cat_clean or "Package" in cat_clean: cat_clean = "Package"
+                elif "Fedora" in cat_clean or "DNF" in cat_clean or "Package" in cat_clean or "RPM" in cat_clean or "Flatpak" in cat_clean: cat_clean = "Fedora"
+                elif "COSMIC" in cat_clean or "Wayland" in cat_clean: cat_clean = "COSMIC"
                 elif "Monitor" in cat_clean or "Process" in cat_clean or "Disk" in cat_clean: cat_clean = "System"
                 elif "Battery" in cat_clean or "Power" in cat_clean: cat_clean = "Power"
                 elif "Hardware" in cat_clean or "Sensor" in cat_clean or "Bluetooth" in cat_clean: cat_clean = "Hardware"
