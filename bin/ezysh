@@ -370,6 +370,30 @@ hardware_defaults = [
 for name, cmd, desc in hardware_defaults:
     add_entry("Hardware", name, cmd, desc)
 
+# ── 13. [Recovery] Real-World Data Recovery Suite ──
+recovery_defaults = [
+    ("recover-deleted-proc-find <filename>", "ls -l /proc/*/fd/* 2>/dev/null | grep -i '<filename>' | grep '(deleted)'", "Cari file terhapus yang file descriptor-nya masih dipegang proses aktif"),
+    ("recover-deleted-proc-dump <pid> <fd> <out>", "cp /proc/<pid>/fd/<fd> <out>", "Salin & selamatkan file yang terhapus dari RAM/file descriptor proses"),
+    ("recover-fsck-ext4-force <partition>", "sudo e2fsck -f -y -v /dev/<partition>", "Paksa cek dan perbaiki filesystem Ext4/Ext3 yang korup atau read-only"),
+    ("recover-xfs-zero-log <partition>", "sudo xfs_repair -L /dev/<partition>", "Perbaiki partisi XFS rusak dengan menghapus log transaksi korup agar bisa di-mount"),
+    ("recover-btrfs-salvage <partition> <dest>", "sudo btrfs restore -v -D /dev/<partition> <dest>", "Ekstrak & selamatkan seluruh file dari partisi Btrfs rusak tanpa perlu mount"),
+    ("recover-disk-ddrescue-fast <src_dev> <img_file>", "sudo ddrescue -d -n /dev/<src_dev> <img_file> mapfile.log", "Tahap 1: Kloning sektor sehat harddisk/flashdisk rusak secepat mungkin tanpa retry"),
+    ("recover-disk-ddrescue-retry <src_dev> <img_file>", "sudo ddrescue -d -r 3 /dev/<src_dev> <img_file> mapfile.log", "Tahap 2: Coba baca ulang sektor bad block yang error sebanyak 3 kali"),
+    ("recover-partition-testdisk <dev>", "sudo testdisk /dev/<dev>", "Deteksi & pulihkan tabel partisi MBR/GPT yang hilang atau terformat"),
+    ("recover-carve-photorec <dev>", "sudo photorec /dev/<dev>", "Ekstraksi mendalam ribuan jenis file terhapus dari unallocated disk sectors"),
+    ("recover-carve-foremost <type> <img_file> <out_dir>", "foremost -t <type> -i <img_file> -o <out_dir>", "Carving file spesifik (png, jpg, pdf, docx, zip) dari image mentah"),
+    ("recover-ext4-undelete-all <dev> <out_dir>", "sudo ext4magic /dev/<dev> -M -d <out_dir> 2>/dev/null || sudo extundelete /dev/<dev> --restore-all", "Pulihkan seluruh file yang baru saja terhapus di partisi Ext4"),
+    ("recover-grep-raw-text <partition> <keyword> <out>", "sudo grep -a -b -C 100 \"<keyword>\" /dev/<partition> > <out>", "Cari & ekstrak kodingan/teks yang tertimpa langsung dari blok sektor partisi disk"),
+    ("recover-strings-carve <img_file> <keyword>", "strings -t d <img_file> | grep -C 10 \"<keyword>\"", "Pindai string teks ASCII dari dump disk image mentah"),
+    ("recover-mount-image-ro <img_file> <mountpoint>", "sudo mount -o loop,ro,noload <img_file> <mountpoint>", "Mount image disk forensik secara aman murni Read-Only tanpa replay log"),
+    ("recover-disk-smart-health <dev>", "sudo smartctl -H -A /dev/<dev> | grep -E \"Reallocated|Pending|Uncorrectable|Health|Status\"", "Periksa indikator kritis kesehatan fisik harddisk / SSD"),
+    ("recover-git-reflog-undo", "git reflog | head -n 25", "Lacak seluruh histori perpindahan HEAD untuk menyelamatkan commit yang hilang"),
+    ("recover-git-lost-found", "git fsck --lost-found && ls -la .git/lost-found/commit/", "Temukan dangling commits yang terputus dari branch / reset hard"),
+    ("recover-git-lost-stash", "git log --graph --oneline --decorate $(git fsck --no-reflogs | awk '/dangling commit/ {print $3}')", "Temukan commit stash yang terhapus / ter-drop tidak sengaja"),
+]
+for name, cmd, desc in recovery_defaults:
+    add_entry("Recovery", name, cmd, desc)
+
 # ── 11. Parse User Shell Configuration (.zshrc / .bashrc) ──
 for rc in shell_rcs:
     if not os.path.exists(rc):
@@ -441,6 +465,7 @@ for rc in shell_rcs:
                 elif "Monitor" in cat_clean or "Process" in cat_clean or "Disk" in cat_clean: cat_clean = "System"
                 elif "Battery" in cat_clean or "Power" in cat_clean: cat_clean = "Power"
                 elif "Hardware" in cat_clean or "Sensor" in cat_clean or "Bluetooth" in cat_clean: cat_clean = "Hardware"
+                elif "Recovery" in cat_clean or "Restore" in cat_clean or "Undelete" in cat_clean: cat_clean = "Recovery"
                 elif "Go" in cat_clean or "Golang" in cat_clean: cat_clean = "Go"
                 elif "Rust" in cat_clean or "Cargo" in cat_clean: cat_clean = "Rust"
                 elif "Python" in cat_clean or "Py" in cat_clean: cat_clean = "Python"
