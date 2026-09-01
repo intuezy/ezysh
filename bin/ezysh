@@ -372,13 +372,18 @@ for name, cmd, desc in hardware_defaults:
 
 # ── 13. [Recovery] Real-World Data Recovery Suite ──
 recovery_defaults = [
+    ("recover-freeze-remount-ro <mountpoint>", "sudo mount -o remount,ro <mountpoint>", "Golden Rule #1: Kunci partisi menjadi Read-Only agar OS tidak menimpa data yang mau diselamatkan"),
+    ("recover-deleted-lsof", "lsof +L1 2>/dev/null | grep -i '(deleted)'", "Daftar seluruh file terhapus di sistem yang masih ditahan di RAM oleh aplikasi aktif"),
     ("recover-deleted-proc-find <filename>", "ls -l /proc/*/fd/* 2>/dev/null | grep -i '<filename>' | grep '(deleted)'", "Cari file terhapus yang file descriptor-nya masih dipegang proses aktif"),
     ("recover-deleted-proc-dump <pid> <fd> <out>", "cp /proc/<pid>/fd/<fd> <out>", "Salin & selamatkan file yang terhapus dari RAM/file descriptor proses"),
     ("recover-fsck-ext4-force <partition>", "sudo e2fsck -f -y -v /dev/<partition>", "Paksa cek dan perbaiki filesystem Ext4/Ext3 yang korup atau read-only"),
+    ("recover-ext4-find-superblocks <partition>", "sudo mke2fs -n /dev/<partition>", "Cari lokasi nomor blok backup superblock alternatif Ext4"),
+    ("recover-ext4-restore-superblock <partition> <block>", "sudo e2fsck -b <block> /dev/<partition>", "Pulihkan partisi Ext4 menggunakan backup superblock cadangan"),
     ("recover-xfs-zero-log <partition>", "sudo xfs_repair -L /dev/<partition>", "Perbaiki partisi XFS rusak dengan menghapus log transaksi korup agar bisa di-mount"),
     ("recover-btrfs-salvage <partition> <dest>", "sudo btrfs restore -v -D /dev/<partition> <dest>", "Ekstrak & selamatkan seluruh file dari partisi Btrfs rusak tanpa perlu mount"),
     ("recover-disk-ddrescue-fast <src_dev> <img_file>", "sudo ddrescue -d -n /dev/<src_dev> <img_file> mapfile.log", "Tahap 1: Kloning sektor sehat harddisk/flashdisk rusak secepat mungkin tanpa retry"),
     ("recover-disk-ddrescue-retry <src_dev> <img_file>", "sudo ddrescue -d -r 3 /dev/<src_dev> <img_file> mapfile.log", "Tahap 2: Coba baca ulang sektor bad block yang error sebanyak 3 kali"),
+    ("recover-disk-stream-ssh <src_dev> <user@host> <dest_img>", "sudo dd if=/dev/<src_dev> bs=64K conv=noerror,sync | gzip -1 | ssh <user@host> \"gzip -d > <dest_img>\"", "Streaming kloning disk rusak langsung ke server remote tanpa sentuh disk lokal"),
     ("recover-partition-testdisk <dev>", "sudo testdisk /dev/<dev>", "Deteksi & pulihkan tabel partisi MBR/GPT yang hilang atau terformat"),
     ("recover-carve-photorec <dev>", "sudo photorec /dev/<dev>", "Ekstraksi mendalam ribuan jenis file terhapus dari unallocated disk sectors"),
     ("recover-carve-foremost <type> <img_file> <out_dir>", "foremost -t <type> -i <img_file> -o <out_dir>", "Carving file spesifik (png, jpg, pdf, docx, zip) dari image mentah"),
