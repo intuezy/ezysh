@@ -4,26 +4,9 @@ A terminal command palette for the commands and flags you always forget.
 
 Hit `Ctrl + K`, type what you want to do in plain English or Indonesian, and get the exact command pasted into your prompt.
 
-```text
-┌─ ⚡ ezysh ──────────────────────────────────────────────────────────────────┐
-│  kill port                                                         215/215 │
-│                                              │                              │
-│ ❯ [Network]  case-kill-port <port>           │   🏷  CATEGORY                │
-│              │ Paksa matikan proses di port  │   Network                    │
-│   [Network]  port-who <port>                 │                              │
-│              │ Cek aplikasi penahan port     │   ⚡ COMMAND                  │
-│   [Docker]   docker-clean-all                │   lsof -ti:<port> |          │
-│              │ Bebaskan puluhan GB disk      │   xargs kill -9              │
-│   [Git]      case-git-undo-commit            │                              │
-│              │ Batalkan commit terakhir      │   ℹ  DESCRIPTION              │
-│                                              │   Paksa matikan process yang │
-│                                              │   menggunakan port tertentu  │
-│                                              │                              │
-│                                              │   💡 PARAMETER INPUT          │
-│                                              │   Press Enter to fill in     │
-│                                              │   <parameters>.              │
-└──────────────────────────────────────────────┴──────────────────────────────┘
-```
+<p align="center">
+  <img src="assets/demo.gif" alt="ezysh demo" width="100%" />
+</p>
 
 ---
 
