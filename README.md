@@ -1,15 +1,8 @@
-<div align="center">
+# ezysh
 
-# ⚡ ezysh
-### *The terminal command palette for commands you always forget.*
+A terminal command palette for the commands and flags you always forget.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
-[![Shell: Zsh | Bash | Fish](https://img.shields.io/badge/Shell-Zsh%20%7C%20Bash%20%7C%20Fish-blue.svg)]()
-[![Platform: Linux | macOS | WSL](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20WSL-black.svg)]()
-
-*Stop memorizing obscure flags, complex one-liners, and piped recipes. Hit **`Ctrl + K`** and find what you need by intent.*
-
-<br/>
+Hit `Ctrl + K`, type what you want to do in plain English or Indonesian, and get the exact command pasted into your prompt.
 
 ```text
 ┌─ ⚡ ezysh ──────────────────────────────────────────────────────────────────┐
@@ -23,8 +16,8 @@
 │              │ Bebaskan puluhan GB disk      │   xargs kill -9              │
 │   [Git]      case-git-undo-commit            │                              │
 │              │ Batalkan commit terakhir      │   ℹ  DESCRIPTION              │
-│   [Node]     node-clean-install              │   Paksa matikan process yang │
-│              │ Nuke dependencies             │   menggunakan port tertentu  │
+│                                              │   Paksa matikan process yang │
+│                                              │   menggunakan port tertentu  │
 │                                              │                              │
 │                                              │   💡 PARAMETER INPUT          │
 │                                              │   Press Enter to fill in     │
@@ -32,84 +25,56 @@
 └──────────────────────────────────────────────┴──────────────────────────────┘
 ```
 
-</div>
+---
+
+## The Problem
+
+You know what you want to do:
+- *"Kill whatever is hogging port 3000"*
+- *"Undo my last git commit without losing my work"*
+- *"Clean up 40 GB of Docker cache and dangling images"*
+- *"Rescue a deleted file that is still held in memory"*
+
+You just don't remember `lsof -ti:3000 | xargs kill -9` or `git reset --soft HEAD~1`.
+
+Instead of opening a browser to search StackOverflow or documentation for the tenth time, press `Ctrl + K`.
 
 ---
 
-## 🌟 Why ezysh?
+## Quickstart
 
-Terminal productivity should not require memorizing hundreds of flags and syntax quirks. `ezysh` turns your shell into an IDE-like command palette:
+### Requirements
+- `fzf`
+- `bash` (4.0+)
+- Shell: `zsh`, `bash`, or `fish`
 
-- **🎯 Search by Intent**: Forgot the syntax? Search what you want to accomplish (`kill port`, `undo commit`, `nuke node_modules`, `clean disk`). `ezysh` indexes names, descriptions, and commands simultaneously.
-- **⚡ Zero Overhead (Pure Native)**: Built with POSIX Bash and native AWK. Sub-2ms preview rendering. Zero Python runtimes, zero background daemons, zero compiled binaries.
-- **🪄 Interactive Parameter Prompts**: Commands with `<port>`, `<container>`, `<url>`, or `<branch>` prompt you for input before injecting into the shell.
-- **🛡 Safe Shell Injection**: Injects selected commands into your prompt buffer so you can review and tweak them before hitting `Enter`.
-- **➕ Save What You Forget**: Add personal one-liners on the fly via `ezy -a`. Stored in standard TSV, searchable instantly.
-- **🎨 Deep Space & Themeable**: Clean typography, sharp borders, and extensible theme overrides via `~/.config/ezysh/theme.sh`.
+### Install (One-Liner)
 
----
-
-## 🌐 Compatibility Matrix
-
-`ezysh` is designed to be lightweight and run anywhere a POSIX shell and terminal exist:
-
-| Layer | Supported Environments |
-| :--- | :--- |
-| **Operating Systems** | • **Linux**: Fedora, Ubuntu, Debian, Arch, Manjaro, Pop!_OS, RHEL/CentOS, Alpine, Void, NixOS<br/>• **macOS**: Apple Silicon (M1–M4) & Intel<br/>• **Windows**: Windows Subsystem for Linux (WSL / WSL2)<br/>• **BSD**: FreeBSD, OpenBSD |
-| **Shells** | • **Zsh** (Vanilla, Oh-My-Zsh, Zinit, Sheldon, Antigen)<br/>• **Bash** (4.0+ with `bind -x`)<br/>• **Fish** (3.0+ native) |
-| **Terminals** | Ghostty, Kitty, Alacritty, WezTerm, iTerm2, Windows Terminal, GNOME Terminal, Konsole, Foot |
-| **Multiplexers** | Zellij, tmux, GNU Screen |
-| **Architectures** | `x86_64` (Intel/AMD), `arm64` / `aarch64` (Apple Silicon, Raspberry Pi, Graviton) |
-
----
-
-## 📦 Curated Built-in Suites (300+ Production Recipes)
-
-Curated defaults live in `share/defaults.tsv` as clean data, separated from execution logic:
-
-| Category | Highlights & Scenarios |
-| :--- | :--- |
-| **🐳 `[Docker]`** | Service controls, auto-restart policies, system prune, instant container shell, compose lifecycle |
-| **📦 `[Git]`** | Undo last commit, stash salvage, emergency discard, code diff search, prune merged branches |
-| **🔌 `[Network]`** | Port killing, reverse SSH tunnels, SOCKS proxy, SSL expiry check, live traffic sniffing |
-| **🟢 `[Node]`** | Nuke dependencies, kill hung dev servers, unused package audit, outdated check |
-| **🦀 `[Rust]`** | Fast cargo type-check, clippy pedantic audit, release build, target directory cleanup |
-| **🐹 `[Go]`** | Vendor sync, race detection, cross-compilation standalone binary, hot reload |
-| **🐍 `[Python]`** | Virtual environments, fast ruff linting, test coverage, ASGI FastAPI dev server |
-| **🗄️ `[Database]`** | Prisma studio/push, PostgreSQL dump & restore, Redis cache flushes |
-| **🔍 `[Forensics]`** | Fileless malware audit, deleted running binaries, IoC extraction, persistence check |
-| **🚑 `[Recovery]`** | Rescue deleted files from `/proc/*/fd`, Ext4 superblock restore, Btrfs salvage, `ddrescue` |
-| **🐧 `[Linux]`** | Disk space hogs, service health, clean config views, journald filters |
-| **🎯 `[Cases]`** | Multi-pipe workflows solving complex real-world developer edge cases |
-
----
-
-## 🚀 Installation
-
-### 1. One-Line Automated Installer (Recommended)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/intuezy/ezysh/main/install.sh | bash
 ```
 
+Restart your terminal, then press **`Ctrl + K`** (or run `ezy`).
+
 ---
 
-### 2. Manual Installation
+## Manual Installation
 
-#### Zsh
+### Zsh
 ```bash
 git clone https://github.com/intuezy/ezysh.git ~/.ezysh
 echo "source ~/.ezysh/ezysh.plugin.zsh" >> ~/.zshrc
 source ~/.zshrc
 ```
 
-#### Bash
+### Bash
 ```bash
 git clone https://github.com/intuezy/ezysh.git ~/.ezysh
 echo "source ~/.ezysh/ezysh.plugin.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-#### Fish
+### Fish
 ```bash
 git clone https://github.com/intuezy/ezysh.git ~/.ezysh
 ln -s ~/.ezysh/ezysh.fish ~/.config/fish/conf.d/ezysh.fish
@@ -117,56 +82,55 @@ ln -s ~/.ezysh/ezysh.fish ~/.config/fish/conf.d/ezysh.fish
 
 ---
 
-## ⌨️ Keybindings & Usage
+## How It Works
 
-| Shortcut / Command | Action |
+1. **Search by Intent**: Fuzzy search matches against command names, syntax, and natural language descriptions. Typing `kill port`, `free memory`, or `undo` finds the right recipe immediately.
+2. **Interactive Parameters**: Commands with placeholders (like `<port>` or `<container>`) prompt you for values before inserting the command.
+3. **Safe by Default**: Nothing runs blindly. `ezysh` pastes the completed command into your shell buffer so you can inspect or tweak it before hitting `Enter`.
+4. **Save What You Forget**: Found a command you know you will forget next week? Save it on the fly:
+   ```bash
+   ezy -a "flush-dns" "sudo resolvectl flush-caches" "Flush local DNS cache" "Network"
+   ```
+   Stored as plain tab-separated text in `~/.config/ezysh/custom.tsv`.
+
+---
+
+## Daily Usage
+
+| Key / Command | Action |
 | :--- | :--- |
-| **`Ctrl + K`** | Open interactive command palette |
-| **`Ctrl + Space`** | Alternative keybinding to open palette |
-| **`ezy` / `ezysh`** | Launch palette from shell prompt |
-| **`ezy -a <name> <cmd> <desc> [cat]`** | Quick add a new command snippet |
-| **`ezy -s` / `ezysh --sync`** | Re-index defaults and custom commands |
-| **`ezy -e` / `ezysh --edit`** | Open `custom.tsv` in default `$EDITOR` |
-| **`ezy -l` / `ezysh --list`** | Print entire commands database to stdout |
+| `Ctrl + K` | Open command palette |
+| `ezy` | Open command palette from shell |
+| `ezy -a <name> <cmd> <desc> [cat]` | Save a custom recipe |
+| `ezy -e` | Edit personal recipes (`~/.config/ezysh/custom.tsv`) |
+| `ezy -s` | Re-index commands |
+| `ezy -l` | Print all commands to stdout |
 
 ---
 
-## 💡 Adding Custom Commands ("Save What You Forget")
+## Built-in Recipes
 
-### Via CLI:
+`ezysh` includes 300+ recipes across daily developer workflows:
+- **Docker & Compose**: Service controls, restart policies, container shells, system purges.
+- **Git**: Undoing commits, stash salvage, amending history, branch cleanups.
+- **Networking**: Port killing, reverse SSH tunnels, SOCKS proxies, SSL expiry checks.
+- **Linux & Recovery**: Salvaging deleted files from `/proc/*/fd`, disk repair, process tracking.
+- **Dev Stacks**: Node.js, Go, Rust, Python, PostgreSQL, Redis.
+
+All default recipes live in `share/defaults.tsv` as clean, tab-separated text.
+
+---
+
+## Custom Themes
+
+To customize colors, create or edit `~/.config/ezysh/theme.sh`:
+
 ```bash
-ezy -a "deploy-prod" "./deploy.sh --prod" "Deploy main branch to production" "DevOps"
+export EZYSH_FZF_COLORS="bg:#1f1f1f,bg+:#353535,fg:#c7c7c7,fg+:#dedede,hl:#999999,border:#3d3d3d"
 ```
 
-### Via Config File (`~/.config/ezysh/custom.tsv`):
-```tsv
-deploy-prod	./deploy.sh --prod	[DevOps] Deploy main branch to production
-suhu-cek	suhu	[Hardware] Cek suhu laptop CPU & SSD
-```
-Custom commands are re-indexed instantly.
-
 ---
 
-## 📋 Requirements
+## License
 
-- **`fzf`** (Command-line fuzzy finder)
-- **`bash`** (4.0+ for launcher runtime)
-- **`zsh`**, **`bash`**, or **`fish`** (Your active interactive shell)
-
-*Zero Python, Node.js, or external compiled dependencies required.*
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome. Adding a new command is as simple as adding a line to `share/defaults.tsv`:
-
-1. Check out our **[Contributing Guidelines](CONTRIBUTING.md)**.
-2. Ensure automated tests pass: `bash ./tests/test_ezysh.sh`.
-3. Open a Pull Request.
-
----
-
-## 📜 License
-
-MIT License © 2026 [intuezy](https://github.com/intuezy)
+MIT © 2026 [intuezy](https://github.com/intuezy)
