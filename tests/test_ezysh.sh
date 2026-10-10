@@ -18,7 +18,7 @@ echo "✔ Passed"
 
 # Test 3: Sync flag
 echo -n "  [3/7] Testing --sync flag... "
-$BIN --sync | grep -q "Successfully synced"
+$BIN --sync | grep -q "Synced"
 echo "✔ Passed"
 
 # Test 4: List flag
@@ -32,7 +32,7 @@ echo "✔ Passed ($count commands indexed)"
 
 # Test 5: Quick Add flag
 echo -n "  [5/7] Testing --add flag... "
-$BIN --add "test-ci-cmd" "echo 'CI Test'" "Automated test command" "CI" | grep -q "Successfully added"
+$BIN --add "test-ci-cmd" "echo 'CI Test'" "Automated test command" "CI" | grep -q "Saved"
 $BIN --list | grep -q "test-ci-cmd"
 # Clean up
 sed -i '/test-ci-cmd/d' "${XDG_CONFIG_HOME:-$HOME/.config}/ezysh/custom.tsv"

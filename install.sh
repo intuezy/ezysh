@@ -85,6 +85,6 @@ fi
 "$BIN_DIR/ezysh" --sync >/dev/null 2>&1 || true
 
 echo ""
-echo -e "\033[1;32m  ✔ ezysh installed successfully!\033[0m"
+echo -e "\033[1;32m  ✔ ezysh is ready!\033[0m"
 echo -e "\033[0;37m  Restart your terminal or reload your shell to activate.\033[0m"
-echo -e "\033[0;37m  Trigger shortcut: \033[1;35mCtrl + K\033[0m\033[0;37m or run: \033[1;35mezy\033[0m\n"
+echo -e "\033[0;37m  Press \033[1;35mCtrl + K\033[0m\033[0;37m or type \033[1;35mezy\033[0m\033[0;37m to start.\033[0m\n"
