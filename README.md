@@ -5,7 +5,7 @@ A terminal command palette for the commands and flags you always forget.
 Hit `Ctrl + K`, type what you want to do in plain English or Indonesian, and get the exact command pasted into your prompt.
 
 <p align="center">
-  <img src="assets/demo.gif" alt="ezysh demo" width="100%" />
+  <img src="assets/ezysh-demo.gif" alt="ezysh demo" width="100%" />
 </p>
 
 ---

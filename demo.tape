@@ -1,4 +1,4 @@
-Output assets/demo.gif
+Output assets/ezysh-demo.gif
 
 Set FontSize 16
 Set Width 1050
