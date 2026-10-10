@@ -1,6 +1,6 @@
 ---
-name: 💡 Propose New Command / Recipe
-about: Suggest a new command, case recipe, or category to be curated into ezysh
+name: 💡 Propose New Curated Command
+about: Suggest a new command, workflow, or category to be curated into ezysh
 title: "[Command Proposal]: "
 labels: ["enhancement", "curated-commands"]
 assignees: ''

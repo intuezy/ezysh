@@ -2,13 +2,13 @@
 
 First off, thank you for considering contributing to **ezysh**! Projects like this thrive because of the open-source community.
 
-Whether you want to add new curated command recipes, fix a bug, or improve documentation, your help is warmly welcomed.
+Whether you want to add new curated commands, fix a bug, or improve documentation, your help is warmly welcomed.
 
 ---
 
 ## 🌟 How Can You Contribute?
 
-1. **Propose New Curated Commands & Recipes** (Easiest & Most Impactful!)
+1. **Propose New Curated Commands** (Easiest & Most Impactful!)
 2. **Report Bugs & Edge Cases**
 3. **Suggest New Shell Integrations / Themes**
 4. **Improve Documentation & Translations**
@@ -35,7 +35,7 @@ We maintain a high bar for built-in default commands:
    cd ezysh
    ```
 
-2. **Add or edit recipes** in `share/defaults.tsv` (or core code in `bin/ezysh`).
+2. **Add or edit commands** in `share/defaults.tsv` (or core code in `bin/ezysh`).
 
 3. **Run the automated test suite**:
    ```bash

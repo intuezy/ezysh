@@ -84,7 +84,7 @@ ln -s ~/.ezysh/ezysh.fish ~/.config/fish/conf.d/ezysh.fish
 
 ## How It Works
 
-1. **Search by Intent**: Fuzzy search matches against command names, syntax, and natural language descriptions. Typing `kill port`, `free memory`, or `undo` finds the right recipe immediately.
+1. **Search by Intent**: Fuzzy search matches against command names, syntax, and natural language descriptions. Typing `kill port`, `free memory`, or `undo` finds the right command immediately.
 2. **Interactive Parameters**: Commands with placeholders (like `<port>` or `<container>`) prompt you for values before inserting the command.
 3. **Safe by Default**: Nothing runs blindly. `ezysh` pastes the completed command into your shell buffer so you can inspect or tweak it before hitting `Enter`.
 4. **Save What You Forget**: Found a command you know you will forget next week? Save it on the fly:
@@ -101,23 +101,24 @@ ln -s ~/.ezysh/ezysh.fish ~/.config/fish/conf.d/ezysh.fish
 | :--- | :--- |
 | `Ctrl + K` | Open command palette |
 | `ezy` | Open command palette from shell |
-| `ezy -a <name> <cmd> <desc> [cat]` | Save a custom recipe |
-| `ezy -e` | Edit personal recipes (`~/.config/ezysh/custom.tsv`) |
+| `ezy -a <name> <cmd> <desc> [cat]` | Save a custom command |
+| `ezy -e` | Edit custom commands (`~/.config/ezysh/custom.tsv`) |
 | `ezy -s` | Re-index commands |
 | `ezy -l` | Print all commands to stdout |
 
 ---
 
-## Built-in Recipes
+## Built-in Commands
 
-`ezysh` includes 300+ recipes across daily developer workflows:
+`ezysh` includes 300+ built-in commands across daily developer workflows:
+
 - **Docker & Compose**: Service controls, restart policies, container shells, system purges.
 - **Git**: Undoing commits, stash salvage, amending history, branch cleanups.
 - **Networking**: Port killing, reverse SSH tunnels, SOCKS proxies, SSL expiry checks.
 - **Linux & Recovery**: Salvaging deleted files from `/proc/*/fd`, disk repair, process tracking.
 - **Dev Stacks**: Node.js, Go, Rust, Python, PostgreSQL, Redis.
 
-All default recipes live in `share/defaults.tsv` as clean, tab-separated text.
+All default commands live in `share/defaults.tsv` as clean, tab-separated text.
 
 ---
 
