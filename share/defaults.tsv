@@ -1,0 +1,306 @@
+[Node]	node-clean-install	rm -rf node_modules package-lock.json && npm install	Hapus total node_modules & lockfile lalu install ulang (Nuke dependencies)
+[Node]	node-kill-dev-servers	pkill -f "next dev|vite|remix|nuxt|astro|nodemon"	Paksa matikan semua server dev lokal yang nyangkut di background
+[Node]	node-unused-deps	npx depcheck	Cek package yang terpasang di package.json tapi tidak pernah di-import
+[Node]	node-outdated	npm outdated	Lihat daftar package yang versinya sudah usang
+[Go]	go-tidy-vendor	go mod tidy && go mod vendor	Rapikan dependensi go.mod & download seluruh module ke folder vendor/
+[Go]	go-test-race	go test -v -race ./...	Jalankan seluruh unit test dengan deteksi data race condition
+[Go]	go-test-cover-html	go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out	Analisis visual code coverage unit test di browser
+[Go]	go-benchmark	go test -bench=. -benchmem ./...	Ukur kecepatan eksekusi & alokasi memori fungsi Go
+[Go]	go-build-cross-linux <binary>	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o <binary>	Build binary standalone statis stripped super kecil untuk deploy server
+[Go]	go-build-cross-windows <binary>	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o <binary>.exe	Cross-compile binary executable untuk Windows x64
+[Go]	go-vet-lint	go vet ./... && golangci-lint run 2>/dev/null || true	Analisis static check bug & style kode Go
+[Go]	go-hot-reload	air || reflex -r '\.go$' -s -- go run .	Jalankan server Go dengan auto-restart saat kodingan diedit
+[Go]	go-list-updates	go list -u -m all	Cek module / library Go yang memiliki update versi baru
+[Go]	go-clean-cache	go clean -modcache -cache	Bersihkan seluruh build cache & module cache Go
+[Rust]	cargo-check-fast	cargo check --workspace	Type-check super cepat seluruh workspace tanpa buat binary
+[Rust]	cargo-clippy-pedantic	cargo clippy --all-targets -- -D warnings	Linting kode Rust ketat untuk mendeteksi anti-pattern
+[Rust]	cargo-release-build	cargo build --release	Kompilasi binary mode release dengan optimasi penuh
+[Rust]	cargo-test-nocapture	cargo test -- --nocapture	Jalankan unit & integration test dengan output println! terlihat
+[Rust]	cargo-watch-run	cargo watch -x run	Auto-recompile & restart aplikasi Rust setiap file disimpan
+[Rust]	cargo-deps-tree	cargo tree -d	Deteksi dependensi duplikat dalam crate graph
+[Rust]	cargo-audit-security	cargo audit	Scan celah keamanan / vulnerabilitas pada dependensi crate
+[Rust]	cargo-clean-target	cargo clean	Hapus folder target/ untuk membebaskan gigabyte ruang disk
+[Python]	py-venv-create <name>	python3 -m venv <name>	Buat virtual environment Python baru
+[Python]	py-venv-activate <name>	source <name>/bin/activate	Aktifkan virtual environment Python
+[Python]	py-reqs-export	pip freeze > requirements.txt	Export seluruh library terpasang ke requirements.txt
+[Python]	py-reqs-install	pip install -r requirements.txt	Install seluruh dependencies dari requirements.txt
+[Python]	py-lint-ruff	ruff check . --fix && ruff format .	Linter & formatter Python super cepat pengganti flake8/black
+[Python]	py-test-coverage	pytest --cov=. --cov-report=term-missing	Jalankan test suite pytest dengan laporan coverage baris
+[Python]	py-fastapi-dev <app_module>	uvicorn <app_module>:app --reload --port 8000	Jalankan server FastAPI ASGI dengan auto-reload
+[Python]	py-clean-pycache	find . -type d -name "__pycache__" -exec rm -rf {} +	Bersihkan seluruh folder __pycache__ dan file .pyc
+[PHP]	artisan-migrate-fresh	php artisan migrate:fresh --seed	Reset total database, jalankan migrasi ulang & isi dummy seeder
+[PHP]	artisan-route-list	php artisan route:list	Lihat seluruh endpoint URL, method & controller Laravel
+[PHP]	artisan-clear-all	php artisan optimize:clear	Bersihkan seluruh cache config, route, view & compiled Laravel
+[PHP]	composer-clean-install	rm -rf vendor composer.lock && composer install	Nuke dan install ulang seluruh paket PHP Composer
+[Database]	prisma-studio	npx prisma studio	Buka GUI database visual di browser via Prisma Studio
+[Database]	prisma-migrate <name>	npx prisma migrate dev --name <name>	Buat dan jalankan migrasi skema database baru
+[Database]	prisma-db-push	npx prisma db push	Sinkronkan skema Prisma langsung ke database tanpa buat file migrasi
+[Database]	pg-dump-db <user> <db> <file.sql>	pg_dump -U <user> -d <db> > <file.sql>	Export / backup database PostgreSQL ke file SQL
+[Database]	pg-restore-db <user> <db> <file.sql>	psql -U <user> -d <db> < <file.sql>	Import / restore file SQL ke database PostgreSQL
+[Database]	redis-flush-all	redis-cli flushall	Bersihkan seluruh key & data cache Redis instan
+[API]	api-post-json <url>	curl -s -X POST -H "Content-Type: application/json" -d '<json>' <url> | jq	Kirim request POST JSON dan format rapi response-nya via jq
+[API]	api-bearer-auth <url> <token>	curl -s -H "Authorization: Bearer <token>" <url> | jq	Request API dengan Authorization Bearer Token (JWT)
+[API]	api-timing-ttfb <url>	curl -s -o /dev/null -w "HTTP: %{http_code} | TTFB: %{time_starttransfer}s | Total: %{time_total}s\n" <url>	Ukur kecepatan response time API (HTTP status code, TTFB & Total)
+[Frontend]	web-serve-local <port>	npx serve -l <port> .	Jalankan local web server instan di folder saat ini
+[Frontend]	web-convert-webp <input>	cwebp -q 85 <input> -o output.webp	Kompresi foto PNG/JPG menjadi WebP untuk optimasi web
+[WebOps]	nginx-safe-reload	sudo nginx -t && sudo systemctl reload nginx	Uji syntax config Nginx dulu lalu reload tanpa downtime
+[WebOps]	nginx-tail-errors	sudo tail -f /var/log/nginx/error.log	Pantau log error Nginx secara realtime
+[Docker]	docker-service-status	systemctl status docker --no-pager	Cek apakah Docker Engine aktif dan lihat status service terbaru
+[Docker]	docker-service-start	sudo systemctl start docker	Nyalakan Docker Engine untuk sesi sekarang
+[Docker]	docker-service-stop	sudo systemctl stop docker	Hentikan Docker Engine dan seluruh container yang sedang berjalan
+[Docker]	docker-service-enable	sudo systemctl enable --now docker	Nyalakan Docker sekarang dan otomatis saat boot
+[Docker]	docker-service-disable	sudo systemctl disable --now docker	Hentikan Docker dan cegah otomatis hidup saat boot tanpa menghapus data
+[Docker]	docker-ps-pretty	docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"	List container aktif dengan tampilan tabel ringkas dan rapi
+[Docker]	docker-ps-all	docker ps -a --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}"	List semua container termasuk yang stopped / exited
+[Docker]	docker-start <container>	docker start <container>	Jalankan kembali satu container yang sedang berhenti
+[Docker]	docker-stop <container>	docker stop <container>	Hentikan satu container secara graceful tanpa menghapus data
+[Docker]	docker-start-all	docker start $(docker ps -aq)	Jalankan seluruh container yang tersedia
+[Docker]	docker-exec-sh <container>	docker exec -it <container> /bin/sh	Masuk ke interactive shell /bin/sh container aktif
+[Docker]	docker-exec-bash <container>	docker exec -it <container> /bin/bash	Masuk ke interactive shell /bin/bash container aktif
+[Docker]	docker-exec-root <container>	docker exec -u 0 -it <container> /bin/sh	Masuk ke shell container dengan hak akses superuser root
+[Docker]	docker-restart-container <container>	docker restart <container>	Restart container tertentu
+[Docker]	docker-top-processes <container>	docker top <container>	Lihat seluruh proses Linux yang sedang berjalan di dalam container
+[Docker]	docker-stop-all	docker stop $(docker ps -aq)	Hentikan seluruh container yang sedang berjalan sekaligus
+[Docker]	docker-rm-all	docker rm -f $(docker ps -aq)	Hapus paksa seluruh container yang ada di sistem
+[Docker]	docker-autostart-status <container>	docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' <container>	Cek apakah container otomatis hidup kembali saat Docker atau laptop dimulai
+[Docker]	docker-autostart-on <container>	docker update --restart unless-stopped <container>	Aktifkan autostart container kecuali sebelumnya dihentikan manual
+[Docker]	docker-autostart-off <container>	docker update --restart no <container>	Matikan autostart container tanpa menghapus container atau datanya
+[Docker]	docker-logs-tail <container>	docker logs -f --tail 100 <container>	Pantau live log 100 baris terakhir dari container
+[Docker]	docker-logs-timestamps <container>	docker logs -f -t <container>	Follow live logs container lengkap dengan timestamp ISO
+[Docker]	docker-logs-since <container> <time>	docker logs --since <time> <container>	Filter log container sejak rentang waktu tertentu (cth: 10m, 1h, 24h)
+[Docker]	docker-images-pretty	docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"	List seluruh image lokal dengan ukuran dan tanggal build
+[Docker]	docker-images-dangling	docker images -f "dangling=true"	List image tidak bertuan / untagged (<none>)
+[Docker]	docker-rmi-dangling	docker rmi $(docker images -f "dangling=true" -q)	Hapus seluruh image untagged (<none>) sampah
+[Docker]	docker-build-nocache <tag>	docker build --no-cache -t <tag> .	Build image dari Dockerfile murni dari awal tanpa cache layer
+[Docker]	docker-image-history <image>	docker history --no-trunc <image>	Inspeksi seluruh layer instruksi Dockerfile pembuat image
+[Docker]	docker-image-save <image> <file.tar>	docker save <image> | gzip > <file.tar.gz>	Export image Docker ke file arsip tar.gz terkompresi
+[Docker]	docker-image-load <file.tar>	docker load < <file.tar.gz>	Import image Docker dari file arsip tar.gz
+[Docker]	docker-compose-up-daemon	docker compose up -d	Jalankan seluruh service compose di background (daemon)
+[Docker]	docker-compose-stop	docker compose stop	Hentikan seluruh service compose tanpa menghapus container atau data
+[Docker]	docker-compose-start	docker compose start	Jalankan kembali service compose yang sebelumnya dihentikan
+[Docker]	docker-compose-down	docker compose down	Hentikan dan hapus container serta network compose tanpa menghapus volume database
+[Docker]	docker-compose-down-volumes	docker compose down -v	Hentikan compose dan hapus seluruh volume database terkait
+[Docker]	docker-compose-pull	docker compose pull	Unduh versi terbaru seluruh image pada compose
+[Docker]	docker-compose-config-check	docker compose config --quiet	Validasi syntax dan konfigurasi Compose tanpa menjalankan service
+[Docker]	docker-compose-rebuild	docker compose up -d --build --force-recreate	Rebuild dan jalankan ulang seluruh service compose secara bersih
+[Docker]	docker-compose-logs-tail <service>	docker compose logs -f --tail 100 <service>	Pantau live log service tertentu pada docker compose
+[Docker]	docker-compose-exec <service>	docker compose exec <service> sh	Masuk ke shell service docker compose aktif
+[Docker]	docker-compose-restart <service>	docker compose restart <service>	Restart satu service spesifik di docker compose
+[Docker]	docker-compose-ps	docker compose ps	Cek status kesehatan dan port seluruh service compose
+[Docker]	docker-inspect-ip <container>	docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container>	Cek alamat IP lokal container dalam jaringan Docker
+[Docker]	docker-inspect-env <container>	docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' <container>	Lihat seluruh environment variable aktif di dalam container
+[Docker]	docker-inspect-mounts <container>	docker inspect -f '{{json .Mounts}}' <container> | jq .	Inspeksi mapping volume & bind mount container via jq
+[Docker]	docker-inspect-ports <container>	docker port <container>	Cek mapping port container ke host OS
+[Docker]	docker-network-ls	docker network ls	List seluruh virtual network Docker yang tersedia
+[Docker]	docker-network-inspect <network>	docker network inspect <network>	Lihat container apa saja yang terhubung dalam suatu network
+[Docker]	docker-cp-from <container> <src_path> <host_dst>	docker cp <container>:<src_path> <host_dst>	Salin file/folder dari dalam container keluar ke host
+[Docker]	docker-cp-to <host_src> <container> <dst_path>	docker cp <host_src> <container>:<dst_path>	Salin file/folder dari host masuk ke dalam container
+[Docker]	docker-volume-ls	docker volume ls	List seluruh persistent volume Docker
+[Docker]	docker-volume-prune	docker volume prune -f	Hapus seluruh volume Docker yang tidak lagi digunakan container
+[Docker]	docker-volume-inspect <volume>	docker volume inspect <volume>	Cek lokasi direktori fisik volume di filesystem host
+[Docker]	docker-clean-all	docker system prune -af --volumes	Bebaskan puluhan GB disk dari image, container, cache & volume sampah
+[Docker]	docker-clean-builder	docker builder prune -af	Bersihkan cache build multi-stage BuildKit pemakan disk
+[Docker]	docker-disk-usage	docker system df -v	Analisis rincian konsumsi ruang disk oleh images, containers & volumes
+[Docker]	docker-stats-live	docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"	Monitor konsumsi CPU, RAM & Network I/O container realtime
+[Git]	case-git-undo-commit	git reset --soft HEAD~1	Batalkan commit terakhir tanpa menghapus kodingan (kembali ke staged)
+[Git]	case-git-discard-all	git restore . && git clean -fd	Reset total direktori kerja kembali bersih ke kondisi commit terakhir
+[Git]	case-git-amend-no-edit	git commit --amend --no-edit	Tambahkan file kelupaan ke commit terakhir tanpa merubah pesan
+[Git]	case-git-search-history <text>	git log -S "<text>" --source --all	Cari commit mana yang pernah menambah atau menghapus baris kode tertentu
+[Git]	case-git-delete-merged-branches	git branch --merged | grep -v "\*" | xargs -n 1 git branch -d	Hapus massal branch lokal yang sudah berhasil di-merge ke main
+[Git]	case-git-rename-branch <new_name>	git branch -m <new_name>	Rename / ganti nama branch yang sedang aktif saat ini
+[Git]	case-git-stash-staged-only	git stash --keep-index	Stash hanya file yang belum di-stage (keep staged changes)
+[Linux]	disk-usage-top	du -sh * 2>/dev/null | sort -h	Urutkan folder/file terbesar di direktori saat ini (Cari pemakan disk)
+[Linux]	disk-partitions	df -hT	Cek sisa kapasitas partisi disk & tipe filesystem (ext4/btrfs/xfs)
+[Linux]	cd-previous	cd -	Kembali ke direktori sebelumnya (seperti tombol back)
+[Linux]	grep-text-all <query>	grep -rn "<query>" .	Cari teks di dalam semua file secara rekursif + nomor baris
+[Linux]	find-modified-24h	find . -type f -mtime -1	Cari semua file yang diubah dalam 24 jam terakhir
+[Linux]	rsync-copy <src> <dst>	rsync -avzP <src> <dst>	Copy file super cepat dengan progress bar & resume capability
+[Linux]	chown-take-ownership <dir>	sudo chown -R $USER:$USER <dir>	Ambil alih kepemilikan folder yang terkunci akses root
+[Linux]	chmod-executable <file>	chmod +x <file>	Beri izin eksekusi pada script bash / binary
+[Linux]	my-user-groups	id && groups	Cek identitas user & group saat ini (misal cek akses docker/wheel)
+[Linux]	check-dir-permission <dir>	ls -ld <dir>	Cek izin permission direktori itu sendiri tanpa list isinya
+[Linux]	services-failed	systemctl --failed	List semua service yang crash atau gagal start saat booting
+[Linux]	service-enable-now <service>	sudo systemctl enable --now <service>	Auto-start saat boot sekaligus langsung jalankan service sekarang
+[Linux]	service-logs-live <service>	journalctl -u <service> -f	Pantau live log error service tertentu secara realtime
+[Linux]	system-errors-boot	journalctl -p 3 -xb	Hanya tampilkan log error kritis (Priority 3) dari boot saat ini
+[Linux]	pkill-by-name <nama>	pkill -f <nama>	Tutup paksa semua proses berdasarkan namanya (cth: pkill -f node)
+[Linux]	ram-usage	free -h	Cek sisa penggunaan memori RAM dan Swap
+[Linux]	cpu-load-uptime	uptime	Cek uptime sistem & rata-rata beban CPU (Load average 1m, 5m, 15m)
+[Linux]	clean-config-read <file>	grep -v "^#" <file> | grep -v "^$"	Baca file konfigurasi bersih tanpa komentar # dan baris kosong
+[Linux]	tail-log-live <file>	tail -f <file>	Pantau baris log yang terus bertambah secara realtime
+[Linux]	sudo-write-file <file> <text>	echo "<text>" | sudo tee -a <file>	Tulis teks ke file sistem dengan hak root via sudo tee
+[Linux]	lsblk-layout	lsblk -f	Peta visual seluruh harddisk, partisi, mountpoint & UUID
+[Linux]	kernel-usb-logs	dmesg -T | grep -i "usb\|error" | tail -n 30	Cek log kernel hardware (Deteksi flashdisk/SSD yang error)
+[Network]	case-kill-port <port>	kill -9 $(lsof -t -i :<port>)	Otomatis cari PID & paksa matikan proses yang menduduki port
+[Network]	case-top-connected-ips	ss -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10	Deteksi Top 10 IP koneksi terbanyak ke server (Investigasi DDoS/Traffic)
+[Network]	case-dns-compare-resolvers <domain>	for dns in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do echo -ne "DNS $dns: \t"; dig @$dns +short <domain> | tr '\n' ' '; echo ""; done	Uji propagasi DNS ke 4 provider publik (Cloudflare, Google, Quad9, OpenDNS)
+[Network]	case-check-ssl-days-left <domain>	echo | openssl s_client -servername <domain> -connect <domain>:443 2>/dev/null | openssl x509 -noout -enddate -checkend 2592000 && echo "✅ SSL Valid > 30 hari" || echo "⚠️ SSL Expiring Soon / Invalid"	Cek masa berlaku SSL apakah masih aman > 30 hari
+[Network]	case-watch-port <port>	watch -n 1 "ss -tulpn | grep :<port>"	Live monitor status port & koneksi setiap 1 detik
+[Network]	case-api-benchmark-10x <url>	for i in {1..10}; do curl -s -o /dev/null -w "Run $i: Status %{http_code} | Total: %{time_total}s (TTFB: %{time_starttransfer}s)\n" <url>; done	Benchmark latency endpoint API 10 kali berturut-turut
+[Network]	case-sniff-http-requests <port>	sudo tcpdump -s 0 -A -l -i any "tcp port <port>" | grep -E --line-buffered "^(GET|POST|PUT|DELETE|PATCH|HEAD) "	Sniff & filter khusus baris request HTTP di port tertentu
+[Network]	case-scan-wifi-live-hosts	nmap -sn $(ip -o -f inet addr show | awk '/scope global/ {print $4}' | head -n 1)	Auto-scan seluruh IP perangkat aktif di subnet WiFi lokal
+[Network]	case-download-extract-tar <url>	curl -sL <url> | tar -xz	Download dan langsung ekstrak arsip tar.gz tanpa simpan file .tar
+[Network]	case-ssh-background-tunnel <local_port> <remote_port> <user@host>	ssh -f -N -L <local_port>:localhost:<remote_port> <user@host>	Buka SSH Tunnel di background (daemon) tanpa tahan terminal
+[Network]	case-find-public-interface	ip route get 1.1.1.1 | awk '{print "Interface:", $5, "| Local IP:", $7}'	Cari kartu interface & IP lokal yang routing ke internet
+[Network]	port-who <port>	lsof -i :<port>	Cek aplikasi / PID apa yang sedang memakai port tertentu
+[Network]	port-kill <port>	fuser -k <port>/tcp	Paksa matikan proses yang menduduki port tertentu
+[Network]	ports-listen	ss -tulwn	List semua port TCP/UDP lokal yang aktif & listening
+[Network]	ports-established	ss -t state established	List semua koneksi TCP yang sedang aktif (Established)
+[Network]	port-check <host> <port>	nc -zv <host> <port>	Uji apakah port remote di server terbuka / bisa diakses
+[Network]	dns-records <domain>	dig <domain> ANY +noall +answer	Cek semua record DNS domain (A, MX, TXT, NS, CNAME)
+[Network]	dns-trace <domain>	dig +trace <domain>	Lacak rantai resolusi DNS dari root server hingga authoritative
+[Network]	dns-ip <domain>	dig +short <domain>	Ambil hanya IP address publik dari suatu domain secara cepat
+[Network]	dns-reverse <ip>	dig -x <ip> +short	Reverse DNS: Cari nama domain asal dari sebuah IP address
+[Network]	whois-domain <domain>	whois <domain>	Cek informasi kepemilikan dan registrar domain
+[Network]	dns-flush-cache	sudo systemd-resolve --flush-caches || sudo resolvectl flush-caches	Flush / bersihkan cache DNS lokal komputer
+[Network]	ssl-expiry <domain>	openssl s_client -connect <domain>:443 -servername <domain> 2>/dev/null | openssl x509 -noout -dates -subject	Cek tanggal kadaluarsa & subjek sertifikat SSL
+[Network]	ssl-chain <domain>	openssl s_client -showcerts -connect <domain>:443	Tampilkan sertifikat SSL lengkap beserta rantai CA chain
+[Network]	http-timing <url>	curl -s -o /dev/null -w "DNS: %{time_namelookup}s | Connect: %{time_connect}s | TTFB: %{time_starttransfer}s | Total: %{time_total}s
+" <url>	Ukur rincian latency HTTP (DNS, TCP, TTFB, Total)
+[Network]	http-headers <url>	curl -ILs <url>	Ambil header HTTP lengkap dan ikuti redirect (301/302)
+[Network]	http-post-json <url> <json>	curl -X POST -H "Content-Type: application/json" -d '<json>' <url>	Kirim request HTTP POST dengan payload JSON
+[Network]	http-auth-bearer <url> <token>	curl -H "Authorization: Bearer <token>" <url>	Kirim request HTTP dengan Authorization Bearer Token
+[Network]	http-download-resume <url>	curl -C - -O <url>	Download file besar dengan kemampuan resume jika terputus
+[Network]	sniff-port <port>	sudo tcpdump -i any port <port> -n -s 0 -X	Sniff & dump isi paket data mentah pada port tertentu
+[Network]	sniff-host <host>	sudo tcpdump -i any host <host> -n	Sniff seluruh lalu lintas paket menuju / dari host tertentu
+[Network]	bandwidth-process	sudo nethogs	Monitor pemakaian bandwidth jaringan per proses / PID realtime
+[Network]	bandwidth-live	sudo iftop	Monitor traffic bandwidth antar IP realtime
+[Network]	speed-test	curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -	Uji kecepatan internet (Speedtest) langsung di terminal
+[Network]	ssh-forward-local <local_port> <remote_port> <user@host>	ssh -L <local_port>:localhost:<remote_port> <user@host> -N	Buka port database remote di localhost laptop via SSH tunnel
+[Network]	ssh-reverse-tunnel <remote_port> <local_port> <user@host>	ssh -R <remote_port>:localhost:<local_port> <user@host> -N	Expose server lokal ke VPS publik via Reverse SSH Tunnel
+[Network]	ssh-socks-proxy <port> <user@host>	ssh -D <port> -q -C -N <user@host>	Buat proxy SOCKS5 aman melalui server SSH
+[Network]	ssh-copy-key <user@host>	ssh-copy-id <user@host>	Salin public key SSH ke remote server agar login tanpa password
+[Network]	my-ip-public	curl -s ifconfig.me && echo	Cek alamat IP publik internet saat ini
+[Network]	my-ip-detail <ip>	curl -s ipinfo.io/<ip>	Cek detail geolokasi, kota, ISP, dan ASN dari IP address
+[Network]	ip-lan-devices	ip neigh	List perangkat lain yang aktif di jaringan lokal / WiFi (ARP table)
+[Network]	ip-subnet-scan <subnet>	nmap -sn <subnet>	Scan seluruh host / IP aktif dalam satu subnet (cth: 192.168.1.0/24)
+[Network]	ip-route-table	ip route show	Tampilkan routing table & IP gateway router default
+[Network]	ip-interface-stats	ip -s link	Cek statistik interface jaringan (packet drop / RX-TX errors)
+[Network]	firewall-status	sudo firewall-cmd --list-all 2>/dev/null || sudo ufw status verbose	Cek status firewall & daftar port yang sedang terbuka
+[Network]	firewall-open <port>	sudo firewall-cmd --add-port=<port>/tcp --permanent && sudo firewall-cmd --reload	Buka port TCP pada firewall Fedora / RHEL
+[Network]	firewall-ufw-open <port>	sudo ufw allow <port>/tcp	Buka port TCP pada firewall UFW (Ubuntu / Debian)
+[Network]	trace-route <host>	traceroute <host>	Lacak rute hop perjalanan paket jaringan menuju target
+[Network]	ping-test <host>	ping -c 5 <host>	Tes latency & stabilitas koneksi (dibatasi 5 paket)
+[Network]	ping-mtu-check <packet_size> <host>	ping -M do -s <packet_size> <host>	Tes ukuran MTU tanpa fragmentasi (cth: 1472)
+[Network]	wifi-networks	nmcli dev wifi list	Scan dan list semua sinyal WiFi di sekitar
+[Forensics]	case-proc-deleted-running	ls -l /proc/*/exe 2>/dev/null | grep '(deleted)'	Deteksi proses berjalan yang file binary aslinya sudah terhapus di disk
+[Forensics]	case-proc-env-strings <pid>	strings /proc/<pid>/environ | tr '\0' '\n'	Ekstrak environment variables & secret keys proses dari /proc
+[Forensics]	case-proc-network-listen	sudo lsof -i -P -n | grep LISTEN	Pemetaan lengkap proses aktif yang membuka port listening
+[Forensics]	proc-open-files <pid>	lsof -p <pid>	Audit handle file & koneksi socket dari suatu PID proses
+[Forensics]	case-memory-dump-process <pid> <output_file>	sudo gcore -o <output_file> <pid>	Dump snapshot memori RAM dari PID proses tertentu
+[Forensics]	case-failed-ssh-top-ips	journalctl -u sshd --no-pager | grep -i "Failed password" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 20	Top 20 IP penyerang yang gagal login SSH (Brute-force audit)
+[Forensics]	case-sudo-exec-history	journalctl _COMM=sudo -S -24h --no-pager | grep "COMMAND="	Audit timeline perintah yang dieksekusi dengan hak sudo 24 jam terakhir
+[Forensics]	auth-log-timeline	last -Fwx	Riwayat lengkap timeline login & logout pengguna
+[Forensics]	case-wtmp-raw-dump	utmpdump /var/log/wtmp | tail -n 30	Dump rekaman raw log sesi autentikasi /var/log/wtmp
+[Forensics]	case-hash-tree-sha256 <dir>	find <dir> -type f -exec sha256sum {} + | tee hashes.sha256	Buat baseline hash SHA256 seluruh file untuk integritas data
+[Forensics]	case-find-modified-recent <dir> <minutes>	find <dir> -type f -mmin -<minutes> -ls	Cari file yang baru dibuat atau diubah dalam N menit terakhir
+[Forensics]	case-find-hidden-executables <dir>	find <dir> -type f -name ".*" -perm /111 -ls 2>/dev/null	Deteksi file executable tersembunyi (berawalan titik)
+[Forensics]	case-find-suid-binaries	find / -perm -4000 -type f -exec ls -la {} + 2>/dev/null	Audit binary SUID (Pemeriksaan celah Privilege Escalation)
+[Forensics]	case-strings-suspicious <file>	strings -a <file> | grep -Ei "https?://|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|/bin/sh|base64|cmd\.exe|powershell"	Ekstrak IoC (IP, URL, command shell) dari file binary mentah
+[Forensics]	exif-metadata <file>	exiftool <file>	Ekstrak seluruh metadata tersembunyi dokumen / gambar
+[Forensics]	file-magic-check <file>	file -b --mime-type <file>	Periksa MIME type & magic bytes asli file terlepas dari ekstensinya
+[Forensics]	binwalk-analyze <file>	binwalk <file>	Analisis dan ekstrak komponen tersembunyi di dalam file / firmware
+[Forensics]	case-audit-all-crontabs	for user in $(cut -f1 -d: /etc/passwd); do echo "=== User: $user ==="; crontab -u $user -l 2>/dev/null; done; ls -la /etc/cron*	Audit scheduled task cron seluruh user untuk mencari persistence backdoor
+[Forensics]	case-audit-systemd-timers	systemctl list-timers --all	List seluruh timer service systemd yang terjadwal aktif
+[Forensics]	case-audit-autostart-services	systemctl list-unit-files --type=service --state=enabled	List seluruh service yang otomatis aktif saat boot sistem
+[Forensics]	case-audit-ssh-authorized-keys	grep -H "" /home/*/.ssh/authorized_keys /root/.ssh/authorized_keys 2>/dev/null	Periksa kunci publik SSH yang terdaftar di seluruh home user
+[Forensics]	disk-image-dd <source_dev> <output_img>	sudo dd if=<source_dev> of=<output_img> bs=64K status=progress conv=noerror,sync	Buat image bitstream raw forensik sektor-per-sektor
+[Power]	battery-status	upower -i $(upower -e | grep 'BAT' | head -n 1) 2>/dev/null || acpi -V 2>/dev/null	Cek kapasitas sisa, status charging, voltage & health baterai laptop
+[Power]	battery-health	cat /sys/class/power_supply/BAT*/capacity /sys/class/power_supply/BAT*/status 2>/dev/null	Cek persentase baterai & status pengisian daya langsung dari kernel
+[Power]	battery-cycles	cat /sys/class/power_supply/BAT*/cycle_count 2>/dev/null || upower -d | grep -i cycle	Cek jumlah siklus pengisian daya baterai laptop (Cycle count)
+[Power]	power-top-consumers	sudo powertop	Diagnosa & audit aplikasi/hardware yang paling boros baterai
+[Power]	power-profile-get	powerprofilesctl get	Cek profil daya aktif laptop (performance / balanced / power-saver)
+[Power]	power-profile-set <mode>	powerprofilesctl set <mode>	Ganti profil daya laptop (performance / balanced / power-saver)
+[Power]	power-saver-on	powerprofilesctl set power-saver	Aktifkan mode hemat daya baterai maksimal (Power Saver)
+[Power]	power-balanced-on	powerprofilesctl set balanced	Aktifkan mode daya seimbang default (Balanced)
+[Power]	power-performance-on	powerprofilesctl set performance	Aktifkan mode performa tinggi (Performance)
+[Power]	brightness-get	brightnessctl get 2>/dev/null || cat /sys/class/backlight/*/brightness 2>/dev/null	Cek tingkat kecerahan layar monitor saat ini
+[Power]	brightness-set <pct>	brightnessctl set <pct>%	Atur persentase kecerahan layar laptop (cth: 50%)
+[Power]	system-suspend	systemctl suspend	Tidurkan sistem laptop (Sleep / Suspend)
+[Power]	system-hibernate	systemctl hibernate	Simpan sesi ke disk & matikan daya (Hibernate)
+[Power]	system-reboot	systemctl reboot	Restart komputer dengan aman
+[Power]	system-poweroff	systemctl poweroff	Matikan daya komputer / laptop sepenuhnya
+[Hardware]	hardware-cpu-temp	sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null	Cek suhu temperatur CPU, GPU & motherboard realtime
+[Hardware]	hardware-cpu-info	lscpu	Informasi lengkap arsitektur CPU, core, thread & clock speed
+[Hardware]	hardware-pci-devices	lspci -nnk	Daftar seluruh perangkat bus PCI (VGA, WiFi, NVMe) & driver aktif
+[Hardware]	hardware-usb-devices	lsusb	Daftar seluruh perangkat USB yang terhubung (Keyboard, Mouse, Flashdisk)
+[Hardware]	hardware-ram-slots	sudo dmidecode --type memory 2>/dev/null | grep -E "Size:|Speed:|Type:"	Cek jumlah slot RAM, tipe DDR, dan frekuensi MHz terpasang
+[Hardware]	hardware-audio-status	wpctl status 2>/dev/null || pactl list sinks 2>/dev/null	Cek status perangkat output/input audio PipeWire & ALSA
+[Hardware]	bluetooth-scan	bluetoothctl scan on	Scan dan cari perangkat Bluetooth di sekitar
+[Hardware]	bluetooth-devices	bluetoothctl devices	Daftar perangkat Bluetooth yang tersimpan & terhubung
+[Hardware]	bluetooth-connect <mac>	bluetoothctl connect <mac>	Hubungkan ke perangkat Bluetooth berdasarkan MAC address
+[Recovery]	recover-freeze-remount-ro <mountpoint>	sudo mount -o remount,ro <mountpoint>	Golden Rule #1: Kunci partisi menjadi Read-Only agar OS tidak menimpa data yang mau diselamatkan
+[Recovery]	recover-deleted-lsof	lsof +L1 2>/dev/null | grep -i '(deleted)'	Daftar seluruh file terhapus di sistem yang masih ditahan di RAM oleh aplikasi aktif
+[Recovery]	recover-deleted-proc-find <filename>	ls -l /proc/*/fd/* 2>/dev/null | grep -i '<filename>' | grep '(deleted)'	Cari file terhapus yang file descriptor-nya masih dipegang proses aktif
+[Recovery]	recover-deleted-proc-dump <pid> <fd> <out>	cp /proc/<pid>/fd/<fd> <out>	Salin & selamatkan file yang terhapus dari RAM/file descriptor proses
+[Recovery]	recover-fsck-ext4-force <partition>	sudo e2fsck -f -y -v /dev/<partition>	Paksa cek dan perbaiki filesystem Ext4/Ext3 yang korup atau read-only
+[Recovery]	recover-ext4-find-superblocks <partition>	sudo mke2fs -n /dev/<partition>	Cari lokasi nomor blok backup superblock alternatif Ext4
+[Recovery]	recover-ext4-restore-superblock <partition> <block>	sudo e2fsck -b <block> /dev/<partition>	Pulihkan partisi Ext4 menggunakan backup superblock cadangan
+[Recovery]	recover-xfs-zero-log <partition>	sudo xfs_repair -L /dev/<partition>	Perbaiki partisi XFS rusak dengan menghapus log transaksi korup agar bisa di-mount
+[Recovery]	recover-btrfs-salvage <partition> <dest>	sudo btrfs restore -v -D /dev/<partition> <dest>	Ekstrak & selamatkan seluruh file dari partisi Btrfs rusak tanpa perlu mount
+[Recovery]	recover-disk-ddrescue-fast <src_dev> <img_file>	sudo ddrescue -d -n /dev/<src_dev> <img_file> mapfile.log	Tahap 1: Kloning sektor sehat harddisk/flashdisk rusak secepat mungkin tanpa retry
+[Recovery]	recover-disk-ddrescue-retry <src_dev> <img_file>	sudo ddrescue -d -r 3 /dev/<src_dev> <img_file> mapfile.log	Tahap 2: Coba baca ulang sektor bad block yang error sebanyak 3 kali
+[Recovery]	recover-disk-stream-ssh <src_dev> <user@host> <dest_img>	sudo dd if=/dev/<src_dev> bs=64K conv=noerror,sync | gzip -1 | ssh <user@host> "gzip -d > <dest_img>"	Streaming kloning disk rusak langsung ke server remote tanpa sentuh disk lokal
+[Recovery]	recover-partition-testdisk <dev>	sudo testdisk /dev/<dev>	Deteksi & pulihkan tabel partisi MBR/GPT yang hilang atau terformat
+[Recovery]	recover-carve-photorec <dev>	sudo photorec /dev/<dev>	Ekstraksi mendalam ribuan jenis file terhapus dari unallocated disk sectors
+[Recovery]	recover-carve-foremost <type> <img_file> <out_dir>	foremost -t <type> -i <img_file> -o <out_dir>	Carving file spesifik (png, jpg, pdf, docx, zip) dari image mentah
+[Recovery]	recover-ext4-undelete-all <dev> <out_dir>	sudo ext4magic /dev/<dev> -M -d <out_dir> 2>/dev/null || sudo extundelete /dev/<dev> --restore-all	Pulihkan seluruh file yang baru saja terhapus di partisi Ext4
+[Recovery]	recover-grep-raw-text <partition> <keyword> <out>	sudo grep -a -b -C 100 "<keyword>" /dev/<partition> > <out>	Cari & ekstrak kodingan/teks yang tertimpa langsung dari blok sektor partisi disk
+[Recovery]	recover-strings-carve <img_file> <keyword>	strings -t d <img_file> | grep -C 10 "<keyword>"	Pindai string teks ASCII dari dump disk image mentah
+[Recovery]	recover-mount-image-ro <img_file> <mountpoint>	sudo mount -o loop,ro,noload <img_file> <mountpoint>	Mount image disk forensik secara aman murni Read-Only tanpa replay log
+[Recovery]	recover-disk-smart-health <dev>	sudo smartctl -H -A /dev/<dev> | grep -E "Reallocated|Pending|Uncorrectable|Health|Status"	Periksa indikator kritis kesehatan fisik harddisk / SSD
+[Recovery]	recover-git-reflog-undo	git reflog | head -n 25	Lacak seluruh histori perpindahan HEAD untuk menyelamatkan commit yang hilang
+[Recovery]	recover-git-lost-found	git fsck --lost-found && ls -la .git/lost-found/commit/	Temukan dangling commits yang terputus dari branch / reset hard
+[Recovery]	recover-git-lost-stash	git log --graph --oneline --decorate $(git fsck --no-reflogs | awk '/dangling commit/ {print $3}')	Temukan commit stash yang terhapus / ter-drop tidak sengaja
+[Fedora]	dnf-fast-update	sudo dnf update --refresh -y	Refresh repositori & update seluruh paket sistem Fedora sekaligus
+[Fedora]	dnf-clean-all	sudo dnf clean all && sudo dnf autoremove -y	Bersihkan cache RPM & hapus paket orphan yang sudah tidak terpakai
+[Fedora]	dnf-history-list	dnf history list	Lihat daftar riwayat transaksi instalasi / update paket
+[Fedora]	dnf-history-rollback <id>	sudo dnf history rollback <id>	Rollback transaksi instalasi / update paket jika terjadi masalah
+[Fedora]	dnf-find-owner <file_path>	dnf provides <file_path>	Cari paket apa yang menyediakan binary atau file tertentu
+[Fedora]	dnf-search-package <name>	dnf search <name>	Cari paket RPM di seluruh repositori Fedora yang aktif
+[Fedora]	flatpak-update-clean	flatpak update -y && flatpak uninstall --unused -y	Update seluruh aplikasi Flatpak & bersihkan runtime tak terpakai
+[Fedora]	flatpak-list-apps	flatpak list --app	Daftar seluruh aplikasi Flatpak yang terpasang di sistem
+[Fedora]	flatpak-permission-override <app_id> <dir>	flatpak override <app_id> --filesystem=<dir>	Beri izin akses direktori host ke aplikasi Flatpak sandbox
+[Fedora]	rpm-verify-all	rpm -Va	Verifikasi integritas seluruh file binary sistem terhadap database RPM
+[Fedora]	fedora-selinux-denials	sudo ausearch -m avc -ts recent 2>/dev/null || sudo journalctl -t setroubleshoot -n 20	Cek log permission sistem yang diblokir oleh SELinux
+[Fedora]	fedora-btrfs-compress-status	sudo compsize / 2>/dev/null || sudo btrfs filesystem usage /	Cek rasio kompresi disk ZSTD pada filesystem Btrfs Fedora
+[Fedora]	fedora-btrfs-balance	sudo btrfs balance start -dusage=50 -musage=50 /	Seimbangkan alokasi blok data & metadata filesystem Btrfs
+[Fedora]	fedora-kernel-list	rpm -q kernel-core	Lihat versi kernel Linux yang terpasang di sistem
+[COSMIC]	cosmic-restart-panel	pkill -f cosmic-panel && nohup cosmic-panel >/dev/null 2>&1 &	Restart panel COSMIC jika applet hang atau freeze
+[COSMIC]	cosmic-restart-comp	pkill -HUP cosmic-comp	Kirim reload signal ke compositor COSMIC tanpa logout
+[COSMIC]	cosmic-applets-active	ps aux | grep cosmic-applet | grep -v grep	Daftar seluruh applet COSMIC yang sedang berjalan di RAM
+[COSMIC]	cosmic-applet-logs <applet>	journalctl --user -u cosmic-applet-<applet> -f	Pantau live log error applet COSMIC tertentu
+[COSMIC]	cosmic-randr-status	cosmic-randr list	Cek status monitor, resolusi & refresh rate layar Wayland
+[COSMIC]	cosmic-randr-mirror <disp1> <disp2>	cosmic-randr mirror <disp1> <disp2>	Mirror tampilan layar HDMI ke monitor laptop internal eDP
+[COSMIC]	cosmic-settings-open <page>	cosmic-settings <page>	Buka halaman pengaturan COSMIC (keyboard/displays/power/appearance)
+[COSMIC]	cosmic-shortcuts-backup	cp ~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom ~/cosmic_shortcuts_backup.ron	Backup seluruh konfigurasi shortcut keyboard COSMIC kustom
+[COSMIC]	cosmic-theme-export	tar -czvf ~/cosmic-theme-backup.tar.gz ~/.config/cosmic/com.system76.CosmicTheme*	Export dan backup tema warna COSMIC aktif ke tar.gz
+[COSMIC]	wayland-copy-text <file>	wl-copy < <file>	Salin isi file teks langsung ke clipboard Wayland
+[COSMIC]	wayland-paste-text <out_file>	wl-paste > <out_file>	Paste isi clipboard Wayland ke file
+[COSMIC]	wayland-screenshot-area	grim -g "$(slurp)" ~/Pictures/screenshot_$(date +%s).png	Screenshot area layar Wayland secara interaktif
+[COSMIC]	wayland-pipewire-restart	systemctl --user restart pipewire pipewire-pulse wireplumber	Restart total audio stack & screen sharing PipeWire Wayland
+[Security]	ssh-gen-ed25519	ssh-keygen -t ed25519 -C "$USER@$(hostname)"	Generate pasangan kunci SSH Ed25519 modern super aman
+[Security]	ssh-copy-remote <user@host>	ssh-copy-id -i ~/.ssh/id_ed25519.pub <user@host>	Copy SSH public key ke server remote untuk login tanpa password
+[Security]	ssh-test-verbose <user@host>	ssh -vT <user@host>	Uji koneksi SSH dengan log verbose untuk debugging auth error
+[Security]	ssh-fingerprint-hosts	ssh-keygen -l -f ~/.ssh/known_hosts	Lihat daftar fingerprint host SSH yang tersimpan
+[Security]	secret-gen-token <bytes>	openssl rand -base64 <bytes>	Generate random base64 string untuk token JWT / secret key
+[Security]	secret-gen-hex <bytes>	openssl rand -hex <bytes>	Generate random hexadecimal string (cth: secret API key)
+[Security]	file-encrypt-aes <file>	openssl enc -aes-256-cbc -salt -pbkdf2 -in <file> -out <file>.enc	Enkripsi file penting dengan algoritma AES-256-CBC
+[Security]	file-decrypt-aes <file.enc>	openssl enc -d -aes-256-cbc -pbkdf2 -in <file.enc> -out <file>	Dekripsi file terenkripsi AES-256-CBC kembali ke format asli
+[Security]	ssl-cert-check-expiry <domain>	echo | openssl s_client -servername <domain> -connect <domain>:443 2>/dev/null | openssl x509 -noout -dates	Periksa masa berlaku sertifikat SSL domain HTTPS
+[Security]	hash-sha256-check <file>	sha256sum <file>	Hitung nilai checksum SHA-256 file untuk verifikasi integritas
+[Security]	hash-md5-check <file>	md5sum <file>	Hitung nilai checksum MD5 file
+[Media]	media-mp4-to-gif <video> <output.gif>	ffmpeg -i <video> -vf "fps=15,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 <output.gif>	Konversi video MP4 menjadi animasi GIF berkualitas tinggi untuk README/demo
+[Media]	media-compress-discord <video> <out.mp4>	ffmpeg -i <video> -vcodec libx264 -crf 28 -preset fast <out.mp4>	Kompresi video MP4 agar ringan (<10MB) untuk dikirim di chat Discord/WhatsApp
+[Media]	media-extract-mp3 <video> <out.mp3>	ffmpeg -i <video> -vn -acodec libmp3lame -q:a 2 <out.mp3>	Ekstrak track audio dari video menjadi file MP3 berkualitas tinggi
+[Media]	media-trim-lossless <input> <start> <end> <out>	ffmpeg -ss <start> -to <end> -i <input> -c copy <out>	Potong durasi video secara instan tanpa re-encoding (Lossless 0.1 detik)
+[Media]	media-batch-convert-webp	for f in *.{png,jpg,jpeg}; do [ -f "$f" ] && cwebp -q 85 "$f" -o "${f%.*}.webp"; done	Konversi massal seluruh file gambar PNG/JPG dalam folder menjadi WebP
+[Media]	media-probe-metadata <file>	ffprobe -v error -show_format -show_streams <file>	Inspeksi metadata, resolusi, codec, bitrate, dan FPS file media
+[Utility]	my-public-ip	curl -s https://ipinfo.io | jq .	Cek alamat IP publik, provider ISP, negara, dan lokasi geografis
+[Utility]	weather-live	curl -s wttr.in	Lihat laporan prakiraan cuaca visual di terminal
+[Utility]	weather-city <city>	curl -s wttr.in/<city>	Lihat prakiraan cuaca kota tertentu di terminal
+[Utility]	qrcode-terminal <text>	qrencode -t ansiutf8 "<text>"	Generate QR code langsung di terminal untuk di-scan lewat kamera HP
+[Utility]	speedtest-internet	curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -	Ukur kecepatan download, upload & latency ping koneksi internet
+[Utility]	timer-countdown <mins>	sleep $(($mins * 60)) && notify-send -u critical "⏰ Timer Selesai!" "Waktu $mins menit sudah habis."	Jalankan timer di background dan kirim notifikasi desktop saat selesai
+[Utility]	epoch-to-datetime <timestamp>	date -d @<timestamp>	Konversi Unix Epoch Timestamp (detik) ke tanggal & jam lokal
+[Utility]	datetime-to-epoch	date +%s	Ambil Unix Epoch Timestamp saat ini dalam hitungan detik

@@ -5,762 +5,237 @@
 # License: MIT
 # ==============================================================================
 
-VERSION="1.7.0"
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
-DB_FILE="$CONFIG_DIR/commands.tsv"
-CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
+set -euo pipefail
 
-mkdir -p "$CONFIG_DIR"
+# ── Read-Only Constants ───────────────────────────────────────────────────────
+readonly VERSION="1.7.0"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly DEFAULTS_FILE="$SCRIPT_DIR/share/defaults.tsv"
+readonly CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ezysh"
+readonly DB_FILE="$CONFIG_DIR/commands.tsv"
+readonly CUSTOM_FILE="$CONFIG_DIR/custom.tsv"
+readonly THEME_FILE="$CONFIG_DIR/theme.sh"
+readonly DEFAULT_COLORS="bg:-1,bg+:#342f4b,fg:#7f849c,fg+:#e6e6fa,hl:#f38ba8,hl+:#f38ba8,info:#7f849c,prompt:#cba6f7,pointer:#cba6f7,marker:#a6e3a1,spinner:#cba6f7,border:#342f4b,header:#7f849c"
 
-# ── Function: Render Safe Preview Card ────────────
+# ── Logging Helpers ───────────────────────────────────────────────────────────
+log_info() {
+    echo -e "\033[1;32m⚡ ezysh:\033[0m $1"
+}
+
+log_error() {
+    echo -e "\033[1;31m✖ ezysh:\033[0m $1" >&2
+}
+
+# ── Function: Render Safe Preview Card (Fast Native AWK) ──────────────────────
 render_preview() {
-    local line_num="$1"
-    python3 - "$DB_FILE" "$line_num" << 'PYEOF'
-import sys, linecache
+    local line_num="${1:-0}"
+    [[ "$line_num" =~ ^[0-9]+$ ]] || exit 0
 
-db_path = sys.argv[1]
-try:
-    line_num = int(sys.argv[2])
-except (ValueError, IndexError):
-    sys.exit(0)
-
-raw = linecache.getline(db_path, line_num).strip()
-if not raw:
-    sys.exit(0)
-
-parts = raw.split("\t")
-cat = parts[0] if len(parts) > 0 else "-"
-name = parts[1] if len(parts) > 1 else "-"
-cmd = parts[2] if len(parts) > 2 else "-"
-desc = parts[3] if len(parts) > 3 else "-"
-
-clean_cat = cat.replace("[", "").replace("]", "").strip()
-
-print(f"\033[1;35m  🏷  CATEGORY\033[0m")
-print(f"  \033[1;36m{clean_cat}\033[0m\n")
-
-print(f"\033[1;35m  ⚡ COMMAND\033[0m")
-print(f"  \033[1;32m{cmd}\033[0m\n")
-
-print(f"\033[1;34m  ℹ  DESCRIPTION\033[0m")
-print(f"  \033[0;37m{desc}\033[0m\n")
-
-if "<" in cmd and ">" in cmd:
-    print(f"\033[1;33m  💡 PARAMETER INPUT\033[0m")
-    print(f"  \033[0;33mTekan Enter untuk mengisi nilai parameter\033[0m")
-PYEOF
+    awk -F'\t' -v line="$line_num" '
+    NR == line {
+        cat = $1; name = $2; cmd = $3; desc = $4;
+        gsub(/^\[|\]$/, "", cat)
+        printf "\033[1;35m  🏷  CATEGORY\033[0m\n  \033[1;36m%s\033[0m\n\n", cat
+        printf "\033[1;35m  ⚡ COMMAND\033[0m\n  \033[1;32m%s\033[0m\n\n", cmd
+        printf "\033[1;34m  ℹ  DESCRIPTION\033[0m\n  \033[0;37m%s\033[0m\n\n", desc
+        if (cmd ~ /<[^>]+>/) {
+            printf "\033[1;33m  💡 PARAMETER INPUT\033[0m\n"
+            printf "  \033[0;33mTekan Enter untuk mengisi nilai parameter\033[0m\n"
+        }
+        exit
+    }' "$DB_FILE"
     exit 0
 }
 
-# Preview mode hook (invoked by fzf)
-if [ "$1" = "--preview-line" ]; then
-    render_preview "$2"
-fi
-
-# ── Built-in Curated Defaults & Shell Sync ────────
-sync_aliases() {
-    python3 - << 'PYEOF'
-import re, os
-
-home = os.path.expanduser("~")
-config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.join(home, ".config"))
-ezysh_dir = os.path.join(config_dir, "ezysh")
-db_path = os.path.join(ezysh_dir, "commands.tsv")
-custom_path = os.path.join(ezysh_dir, "custom.tsv")
-
-shell_rcs = [
-    os.path.join(home, ".zshrc"),
-    os.path.join(home, ".bashrc"),
-    os.path.join(config_dir, "fish", "config.fish")
-]
-
-entries = []
-seen_commands = set()
-
-def add_entry(cat, name, cmd, desc):
-    key = f"{cat}:{name}"
-    if key not in seen_commands:
-        seen_commands.add(key)
-        clean_cat = cat if cat.startswith("[") else f"[{cat}]"
-        entries.append((clean_cat, name, cmd, desc))
-
-# ── 1. Web Dev: [Node] (High-Frequency Daily Workflows) ──
-node_defaults = [
-    ("node-clean-install", "rm -rf node_modules package-lock.json && npm install", "Hapus total node_modules & lockfile lalu install ulang (Nuke dependencies)"),
-    ("node-kill-dev-servers", "pkill -f \"next dev|vite|remix|nuxt|astro|nodemon\"", "Paksa matikan semua server dev lokal yang nyangkut di background"),
-    ("node-unused-deps", "npx depcheck", "Cek package yang terpasang di package.json tapi tidak pernah di-import"),
-    ("node-outdated", "npm outdated", "Lihat daftar package yang versinya sudah usang"),
-]
-for name, cmd, desc in node_defaults:
-    add_entry("Node", name, cmd, desc)
-
-# ── 2. Language: [Go] (Golang Power Suite) ──
-go_defaults = [
-    ("go-tidy-vendor", "go mod tidy && go mod vendor", "Rapikan dependensi go.mod & download seluruh module ke folder vendor/"),
-    ("go-test-race", "go test -v -race ./...", "Jalankan seluruh unit test dengan deteksi data race condition"),
-    ("go-test-cover-html", "go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out", "Analisis visual code coverage unit test di browser"),
-    ("go-benchmark", "go test -bench=. -benchmem ./...", "Ukur kecepatan eksekusi & alokasi memori fungsi Go"),
-    ("go-build-cross-linux <binary>", "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags=\"-s -w\" -o <binary>", "Build binary standalone statis stripped super kecil untuk deploy server"),
-    ("go-build-cross-windows <binary>", "CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags=\"-s -w\" -o <binary>.exe", "Cross-compile binary executable untuk Windows x64"),
-    ("go-vet-lint", "go vet ./... && golangci-lint run 2>/dev/null || true", "Analisis static check bug & style kode Go"),
-    ("go-hot-reload", "air || reflex -r '\\.go$' -s -- go run .", "Jalankan server Go dengan auto-restart saat kodingan diedit"),
-    ("go-list-updates", "go list -u -m all", "Cek module / library Go yang memiliki update versi baru"),
-    ("go-clean-cache", "go clean -modcache -cache", "Bersihkan seluruh build cache & module cache Go"),
-]
-for name, cmd, desc in go_defaults:
-    add_entry("Go", name, cmd, desc)
-
-# ── 3. Language: [Rust] (Cargo & Rust Power Suite) ──
-rust_defaults = [
-    ("cargo-check-fast", "cargo check --workspace", "Type-check super cepat seluruh workspace tanpa buat binary"),
-    ("cargo-clippy-pedantic", "cargo clippy --all-targets -- -D warnings", "Linting kode Rust ketat untuk mendeteksi anti-pattern"),
-    ("cargo-release-build", "cargo build --release", "Kompilasi binary mode release dengan optimasi penuh"),
-    ("cargo-test-nocapture", "cargo test -- --nocapture", "Jalankan unit & integration test dengan output println! terlihat"),
-    ("cargo-watch-run", "cargo watch -x run", "Auto-recompile & restart aplikasi Rust setiap file disimpan"),
-    ("cargo-deps-tree", "cargo tree -d", "Deteksi dependensi duplikat dalam crate graph"),
-    ("cargo-audit-security", "cargo audit", "Scan celah keamanan / vulnerabilitas pada dependensi crate"),
-    ("cargo-clean-target", "cargo clean", "Hapus folder target/ untuk membebaskan gigabyte ruang disk"),
-]
-for name, cmd, desc in rust_defaults:
-    add_entry("Rust", name, cmd, desc)
-
-# ── 4. Language: [Python] (Modern Python & FastAPI Suite) ──
-python_defaults = [
-    ("py-venv-create <name>", "python3 -m venv <name>", "Buat virtual environment Python baru"),
-    ("py-venv-activate <name>", "source <name>/bin/activate", "Aktifkan virtual environment Python"),
-    ("py-reqs-export", "pip freeze > requirements.txt", "Export seluruh library terpasang ke requirements.txt"),
-    ("py-reqs-install", "pip install -r requirements.txt", "Install seluruh dependencies dari requirements.txt"),
-    ("py-lint-ruff", "ruff check . --fix && ruff format .", "Linter & formatter Python super cepat pengganti flake8/black"),
-    ("py-test-coverage", "pytest --cov=. --cov-report=term-missing", "Jalankan test suite pytest dengan laporan coverage baris"),
-    ("py-fastapi-dev <app_module>", "uvicorn <app_module>:app --reload --port 8000", "Jalankan server FastAPI ASGI dengan auto-reload"),
-    ("py-clean-pycache", "find . -type d -name \"__pycache__\" -exec rm -rf {} +", "Bersihkan seluruh folder __pycache__ dan file .pyc"),
-]
-for name, cmd, desc in python_defaults:
-    add_entry("Python", name, cmd, desc)
-
-# ── 5. Language: [PHP] (Laravel & Composer Suite) ──
-php_defaults = [
-    ("artisan-migrate-fresh", "php artisan migrate:fresh --seed", "Reset total database, jalankan migrasi ulang & isi dummy seeder"),
-    ("artisan-route-list", "php artisan route:list", "Lihat seluruh endpoint URL, method & controller Laravel"),
-    ("artisan-clear-all", "php artisan optimize:clear", "Bersihkan seluruh cache config, route, view & compiled Laravel"),
-    ("composer-clean-install", "rm -rf vendor composer.lock && composer install", "Nuke dan install ulang seluruh paket PHP Composer"),
-]
-for name, cmd, desc in php_defaults:
-    add_entry("PHP", name, cmd, desc)
-
-# ── 6. Web Dev: [Database] (Prisma, PostgreSQL, Redis) ──
-db_defaults = [
-    ("prisma-studio", "npx prisma studio", "Buka GUI database visual di browser via Prisma Studio"),
-    ("prisma-migrate <name>", "npx prisma migrate dev --name <name>", "Buat dan jalankan migrasi skema database baru"),
-    ("prisma-db-push", "npx prisma db push", "Sinkronkan skema Prisma langsung ke database tanpa buat file migrasi"),
-    ("pg-dump-db <user> <db> <file.sql>", "pg_dump -U <user> -d <db> > <file.sql>", "Export / backup database PostgreSQL ke file SQL"),
-    ("pg-restore-db <user> <db> <file.sql>", "psql -U <user> -d <db> < <file.sql>", "Import / restore file SQL ke database PostgreSQL"),
-    ("redis-flush-all", "redis-cli flushall", "Bersihkan seluruh key & data cache Redis instan"),
-]
-for name, cmd, desc in db_defaults:
-    add_entry("Database", name, cmd, desc)
-
-# ── 7. Web Dev: [API] (Endpoint & Performance Debugging) ──
-api_defaults = [
-    ("api-post-json <url>", "curl -s -X POST -H \"Content-Type: application/json\" -d '<json>' <url> | jq", "Kirim request POST JSON dan format rapi response-nya via jq"),
-    ("api-bearer-auth <url> <token>", "curl -s -H \"Authorization: Bearer <token>\" <url> | jq", "Request API dengan Authorization Bearer Token (JWT)"),
-    ("api-timing-ttfb <url>", "curl -s -o /dev/null -w \"HTTP: %{http_code} | TTFB: %{time_starttransfer}s | Total: %{time_total}s\\n\" <url>", "Ukur kecepatan response time API (HTTP status code, TTFB & Total)"),
-]
-for name, cmd, desc in api_defaults:
-    add_entry("API", name, cmd, desc)
-
-# ── 8. Web Dev: [Frontend] & Assets ──
-frontend_defaults = [
-    ("web-serve-local <port>", "npx serve -l <port> .", "Jalankan local web server instan di folder saat ini"),
-    ("web-convert-webp <input>", "cwebp -q 85 <input> -o output.webp", "Kompresi foto PNG/JPG menjadi WebP untuk optimasi web"),
-]
-for name, cmd, desc in frontend_defaults:
-    add_entry("Frontend", name, cmd, desc)
-
-# ── 9. Web Dev: [WebOps] ──
-webops_defaults = [
-    ("nginx-safe-reload", "sudo nginx -t && sudo systemctl reload nginx", "Uji syntax config Nginx dulu lalu reload tanpa downtime"),
-    ("nginx-tail-errors", "sudo tail -f /var/log/nginx/error.log", "Pantau log error Nginx secara realtime"),
-]
-for name, cmd, desc in webops_defaults:
-    add_entry("WebOps", name, cmd, desc)
-
-# ── 10. [Docker] Full Production & Maintenance Suite ──
-docker_defaults = [
-    # Containers Lifecycle & Shell
-    ("docker-ps-pretty", "docker ps --format \"table {{.ID}}\\t{{.Names}}\\t{{.Status}}\\t{{.Ports}}\"", "List container aktif dengan tampilan tabel ringkas dan rapi"),
-    ("docker-ps-all", "docker ps -a --format \"table {{.ID}}\\t{{.Names}}\\t{{.Status}}\\t{{.Image}}\"", "List semua container termasuk yang stopped / exited"),
-    ("docker-exec-sh <container>", "docker exec -it <container> /bin/sh", "Masuk ke interactive shell /bin/sh container aktif"),
-    ("docker-exec-bash <container>", "docker exec -it <container> /bin/bash", "Masuk ke interactive shell /bin/bash container aktif"),
-    ("docker-exec-root <container>", "docker exec -u 0 -it <container> /bin/sh", "Masuk ke shell container dengan hak akses superuser root"),
-    ("docker-restart-container <container>", "docker restart <container>", "Restart container tertentu"),
-    ("docker-top-processes <container>", "docker top <container>", "Lihat seluruh proses Linux yang sedang berjalan di dalam container"),
-    ("docker-stop-all", "docker stop $(docker ps -aq)", "Hentikan seluruh container yang sedang berjalan sekaligus"),
-    ("docker-rm-all", "docker rm -f $(docker ps -aq)", "Hapus paksa seluruh container yang ada di sistem"),
-
-    # Logs & Live Debugging
-    ("docker-logs-tail <container>", "docker logs -f --tail 100 <container>", "Pantau live log 100 baris terakhir dari container"),
-    ("docker-logs-timestamps <container>", "docker logs -f -t <container>", "Follow live logs container lengkap dengan timestamp ISO"),
-    ("docker-logs-since <container> <time>", "docker logs --since <time> <container>", "Filter log container sejak rentang waktu tertentu (cth: 10m, 1h, 24h)"),
-
-    # Images & Dockerfile
-    ("docker-images-pretty", "docker images --format \"table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}\\t{{.CreatedAt}}\"", "List seluruh image lokal dengan ukuran dan tanggal build"),
-    ("docker-images-dangling", "docker images -f \"dangling=true\"", "List image tidak bertuan / untagged (<none>)"),
-    ("docker-rmi-dangling", "docker rmi $(docker images -f \"dangling=true\" -q)", "Hapus seluruh image untagged (<none>) sampah"),
-    ("docker-build-nocache <tag>", "docker build --no-cache -t <tag> .", "Build image dari Dockerfile murni dari awal tanpa cache layer"),
-    ("docker-image-history <image>", "docker history --no-trunc <image>", "Inspeksi seluruh layer instruksi Dockerfile pembuat image"),
-    ("docker-image-save <image> <file.tar>", "docker save <image> | gzip > <file.tar.gz>", "Export image Docker ke file arsip tar.gz terkompresi"),
-    ("docker-image-load <file.tar>", "docker load < <file.tar.gz>", "Import image Docker dari file arsip tar.gz"),
-
-    # Docker Compose Multi-Container
-    ("docker-compose-up-daemon", "docker compose up -d", "Jalankan seluruh service compose di background (daemon)"),
-    ("docker-compose-down-volumes", "docker compose down -v", "Hentikan compose dan hapus seluruh volume database terkait"),
-    ("docker-compose-rebuild", "docker compose up -d --build --force-recreate", "Rebuild dan jalankan ulang seluruh service compose secara bersih"),
-    ("docker-compose-logs-tail <service>", "docker compose logs -f --tail 100 <service>", "Pantau live log service tertentu pada docker compose"),
-    ("docker-compose-exec <service>", "docker compose exec <service> sh", "Masuk ke shell service docker compose aktif"),
-    ("docker-compose-restart <service>", "docker compose restart <service>", "Restart satu service spesifik di docker compose"),
-    ("docker-compose-ps", "docker compose ps", "Cek status kesehatan dan port seluruh service compose"),
-
-    # Networking & Inspection
-    ("docker-inspect-ip <container>", "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container>", "Cek alamat IP lokal container dalam jaringan Docker"),
-    ("docker-inspect-env <container>", "docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' <container>", "Lihat seluruh environment variable aktif di dalam container"),
-    ("docker-inspect-mounts <container>", "docker inspect -f '{{json .Mounts}}' <container> | jq .", "Inspeksi mapping volume & bind mount container via jq"),
-    ("docker-inspect-ports <container>", "docker port <container>", "Cek mapping port container ke host OS"),
-    ("docker-network-ls", "docker network ls", "List seluruh virtual network Docker yang tersedia"),
-    ("docker-network-inspect <network>", "docker network inspect <network>", "Lihat container apa saja yang terhubung dalam suatu network"),
-
-    # Volumes & File Copy
-    ("docker-cp-from <container> <src_path> <host_dst>", "docker cp <container>:<src_path> <host_dst>", "Salin file/folder dari dalam container keluar ke host"),
-    ("docker-cp-to <host_src> <container> <dst_path>", "docker cp <host_src> <container>:<dst_path>", "Salin file/folder dari host masuk ke dalam container"),
-    ("docker-volume-ls", "docker volume ls", "List seluruh persistent volume Docker"),
-    ("docker-volume-prune", "docker volume prune -f", "Hapus seluruh volume Docker yang tidak lagi digunakan container"),
-    ("docker-volume-inspect <volume>", "docker volume inspect <volume>", "Cek lokasi direktori fisik volume di filesystem host"),
-
-    # System Cleanup & Performance Metrics
-    ("docker-clean-all", "docker system prune -af --volumes", "Bebaskan puluhan GB disk dari image, container, cache & volume sampah"),
-    ("docker-clean-builder", "docker builder prune -af", "Bersihkan cache build multi-stage BuildKit pemakan disk"),
-    ("docker-disk-usage", "docker system df -v", "Analisis rincian konsumsi ruang disk oleh images, containers & volumes"),
-    ("docker-stats-live", "docker stats --format \"table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.NetIO}}\"", "Monitor konsumsi CPU, RAM & Network I/O container realtime"),
-]
-for name, cmd, desc in docker_defaults:
-    add_entry("Docker", name, cmd, desc)
-
-# ── 7. [Git] Power & Recovery Cases ──
-git_power_defaults = [
-    ("case-git-undo-commit", "git reset --soft HEAD~1", "Batalkan commit terakhir tanpa menghapus kodingan (kembali ke staged)"),
-    ("case-git-discard-all", "git restore . && git clean -fd", "Reset total direktori kerja kembali bersih ke kondisi commit terakhir"),
-    ("case-git-amend-no-edit", "git commit --amend --no-edit", "Tambahkan file kelupaan ke commit terakhir tanpa merubah pesan"),
-    ("case-git-search-history <text>", "git log -S \"<text>\" --source --all", "Cari commit mana yang pernah menambah atau menghapus baris kode tertentu"),
-    ("case-git-delete-merged-branches", "git branch --merged | grep -v \"\\*\" | xargs -n 1 git branch -d", "Hapus massal branch lokal yang sudah berhasil di-merge ke main"),
-    ("case-git-rename-branch <new_name>", "git branch -m <new_name>", "Rename / ganti nama branch yang sedang aktif saat ini"),
-    ("case-git-stash-staged-only", "git stash --keep-index", "Stash hanya file yang belum di-stage (keep staged changes)"),
-]
-for name, cmd, desc in git_power_defaults:
-    add_entry("Git", name, cmd, desc)
-
-# ── 8. [Linux] Daily Essentials ──
-linux_defaults = [
-    ("disk-usage-top", "du -sh * 2>/dev/null | sort -h", "Urutkan folder/file terbesar di direktori saat ini (Cari pemakan disk)"),
-    ("disk-partitions", "df -hT", "Cek sisa kapasitas partisi disk & tipe filesystem (ext4/btrfs/xfs)"),
-    ("cd-previous", "cd -", "Kembali ke direktori sebelumnya (seperti tombol back)"),
-    ("grep-text-all <query>", "grep -rn \"<query>\" .", "Cari teks di dalam semua file secara rekursif + nomor baris"),
-    ("find-modified-24h", "find . -type f -mtime -1", "Cari semua file yang diubah dalam 24 jam terakhir"),
-    ("rsync-copy <src> <dst>", "rsync -avzP <src> <dst>", "Copy file super cepat dengan progress bar & resume capability"),
-    ("chown-take-ownership <dir>", "sudo chown -R $USER:$USER <dir>", "Ambil alih kepemilikan folder yang terkunci akses root"),
-    ("chmod-executable <file>", "chmod +x <file>", "Beri izin eksekusi pada script bash / binary"),
-    ("my-user-groups", "id && groups", "Cek identitas user & group saat ini (misal cek akses docker/wheel)"),
-    ("check-dir-permission <dir>", "ls -ld <dir>", "Cek izin permission direktori itu sendiri tanpa list isinya"),
-    ("services-failed", "systemctl --failed", "List semua service yang crash atau gagal start saat booting"),
-    ("service-enable-now <service>", "sudo systemctl enable --now <service>", "Auto-start saat boot sekaligus langsung jalankan service sekarang"),
-    ("service-logs-live <service>", "journalctl -u <service> -f", "Pantau live log error service tertentu secara realtime"),
-    ("system-errors-boot", "journalctl -p 3 -xb", "Hanya tampilkan log error kritis (Priority 3) dari boot saat ini"),
-    ("pkill-by-name <nama>", "pkill -f <nama>", "Tutup paksa semua proses berdasarkan namanya (cth: pkill -f node)"),
-    ("ram-usage", "free -h", "Cek sisa penggunaan memori RAM dan Swap"),
-    ("cpu-load-uptime", "uptime", "Cek uptime sistem & rata-rata beban CPU (Load average 1m, 5m, 15m)"),
-    ("clean-config-read <file>", "grep -v \"^#\" <file> | grep -v \"^$\"", "Baca file konfigurasi bersih tanpa komentar # dan baris kosong"),
-    ("tail-log-live <file>", "tail -f <file>", "Pantau baris log yang terus bertambah secara realtime"),
-    ("sudo-write-file <file> <text>", "echo \"<text>\" | sudo tee -a <file>", "Tulis teks ke file sistem dengan hak root via sudo tee"),
-    ("lsblk-layout", "lsblk -f", "Peta visual seluruh harddisk, partisi, mountpoint & UUID"),
-    ("kernel-usb-logs", "dmesg -T | grep -i \"usb\\|error\" | tail -n 30", "Cek log kernel hardware (Deteksi flashdisk/SSD yang error)"),
-]
-for name, cmd, desc in linux_defaults:
-    add_entry("Linux", name, cmd, desc)
-
-# ── 9. [Network] Suite ──
-network_defaults = [
-    ("case-kill-port <port>", "kill -9 $(lsof -t -i :<port>)", "Otomatis cari PID & paksa matikan proses yang menduduki port"),
-    ("case-top-connected-ips", "ss -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10", "Deteksi Top 10 IP koneksi terbanyak ke server (Investigasi DDoS/Traffic)"),
-    ("case-dns-compare-resolvers <domain>", "for dns in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do echo -ne \"DNS $dns: \\t\"; dig @$dns +short <domain> | tr '\\n' ' '; echo \"\"; done", "Uji propagasi DNS ke 4 provider publik (Cloudflare, Google, Quad9, OpenDNS)"),
-    ("case-check-ssl-days-left <domain>", "echo | openssl s_client -servername <domain> -connect <domain>:443 2>/dev/null | openssl x509 -noout -enddate -checkend 2592000 && echo \"✅ SSL Valid > 30 hari\" || echo \"⚠️ SSL Expiring Soon / Invalid\"", "Cek masa berlaku SSL apakah masih aman > 30 hari"),
-    ("case-watch-port <port>", "watch -n 1 \"ss -tulpn | grep :<port>\"", "Live monitor status port & koneksi setiap 1 detik"),
-    ("case-api-benchmark-10x <url>", "for i in {1..10}; do curl -s -o /dev/null -w \"Run $i: Status %{http_code} | Total: %{time_total}s (TTFB: %{time_starttransfer}s)\\n\" <url>; done", "Benchmark latency endpoint API 10 kali berturut-turut"),
-    ("case-sniff-http-requests <port>", "sudo tcpdump -s 0 -A -l -i any \"tcp port <port>\" | grep -E --line-buffered \"^(GET|POST|PUT|DELETE|PATCH|HEAD) \"", "Sniff & filter khusus baris request HTTP di port tertentu"),
-    ("case-scan-wifi-live-hosts", "nmap -sn $(ip -o -f inet addr show | awk '/scope global/ {print $4}' | head -n 1)", "Auto-scan seluruh IP perangkat aktif di subnet WiFi lokal"),
-    ("case-download-extract-tar <url>", "curl -sL <url> | tar -xz", "Download dan langsung ekstrak arsip tar.gz tanpa simpan file .tar"),
-    ("case-ssh-background-tunnel <local_port> <remote_port> <user@host>", "ssh -f -N -L <local_port>:localhost:<remote_port> <user@host>", "Buka SSH Tunnel di background (daemon) tanpa tahan terminal"),
-    ("case-find-public-interface", "ip route get 1.1.1.1 | awk '{print \"Interface:\", $5, \"| Local IP:\", $7}'", "Cari kartu interface & IP lokal yang routing ke internet"),
-
-    ("port-who <port>", "lsof -i :<port>", "Cek aplikasi / PID apa yang sedang memakai port tertentu"),
-    ("port-kill <port>", "fuser -k <port>/tcp", "Paksa matikan proses yang menduduki port tertentu"),
-    ("ports-listen", "ss -tulwn", "List semua port TCP/UDP lokal yang aktif & listening"),
-    ("ports-established", "ss -t state established", "List semua koneksi TCP yang sedang aktif (Established)"),
-    ("port-check <host> <port>", "nc -zv <host> <port>", "Uji apakah port remote di server terbuka / bisa diakses"),
-    
-    ("dns-records <domain>", "dig <domain> ANY +noall +answer", "Cek semua record DNS domain (A, MX, TXT, NS, CNAME)"),
-    ("dns-trace <domain>", "dig +trace <domain>", "Lacak rantai resolusi DNS dari root server hingga authoritative"),
-    ("dns-ip <domain>", "dig +short <domain>", "Ambil hanya IP address publik dari suatu domain secara cepat"),
-    ("dns-reverse <ip>", "dig -x <ip> +short", "Reverse DNS: Cari nama domain asal dari sebuah IP address"),
-    ("whois-domain <domain>", "whois <domain>", "Cek informasi kepemilikan dan registrar domain"),
-    ("dns-flush-cache", "sudo systemd-resolve --flush-caches || sudo resolvectl flush-caches", "Flush / bersihkan cache DNS lokal komputer"),
-
-    ("ssl-expiry <domain>", "openssl s_client -connect <domain>:443 -servername <domain> 2>/dev/null | openssl x509 -noout -dates -subject", "Cek tanggal kadaluarsa & subjek sertifikat SSL"),
-    ("ssl-chain <domain>", "openssl s_client -showcerts -connect <domain>:443", "Tampilkan sertifikat SSL lengkap beserta rantai CA chain"),
-
-    ("http-timing <url>", 'curl -s -o /dev/null -w "DNS: %{time_namelookup}s | Connect: %{time_connect}s | TTFB: %{time_starttransfer}s | Total: %{time_total}s\n" <url>', "Ukur rincian latency HTTP (DNS, TCP, TTFB, Total)"),
-    ("http-headers <url>", "curl -ILs <url>", "Ambil header HTTP lengkap dan ikuti redirect (301/302)"),
-    ("http-post-json <url> <json>", "curl -X POST -H \"Content-Type: application/json\" -d '<json>' <url>", "Kirim request HTTP POST dengan payload JSON"),
-    ("http-auth-bearer <url> <token>", "curl -H \"Authorization: Bearer <token>\" <url>", "Kirim request HTTP dengan Authorization Bearer Token"),
-    ("http-download-resume <url>", "curl -C - -O <url>", "Download file besar dengan kemampuan resume jika terputus"),
-
-    ("sniff-port <port>", "sudo tcpdump -i any port <port> -n -s 0 -X", "Sniff & dump isi paket data mentah pada port tertentu"),
-    ("sniff-host <host>", "sudo tcpdump -i any host <host> -n", "Sniff seluruh lalu lintas paket menuju / dari host tertentu"),
-    ("bandwidth-process", "sudo nethogs", "Monitor pemakaian bandwidth jaringan per proses / PID realtime"),
-    ("bandwidth-live", "sudo iftop", "Monitor traffic bandwidth antar IP realtime"),
-    ("speed-test", "curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -", "Uji kecepatan internet (Speedtest) langsung di terminal"),
-
-    ("ssh-forward-local <local_port> <remote_port> <user@host>", "ssh -L <local_port>:localhost:<remote_port> <user@host> -N", "Buka port database remote di localhost laptop via SSH tunnel"),
-    ("ssh-reverse-tunnel <remote_port> <local_port> <user@host>", "ssh -R <remote_port>:localhost:<local_port> <user@host> -N", "Expose server lokal ke VPS publik via Reverse SSH Tunnel"),
-    ("ssh-socks-proxy <port> <user@host>", "ssh -D <port> -q -C -N <user@host>", "Buat proxy SOCKS5 aman melalui server SSH"),
-    ("ssh-copy-key <user@host>", "ssh-copy-id <user@host>", "Salin public key SSH ke remote server agar login tanpa password"),
-
-    ("my-ip-public", "curl -s ifconfig.me && echo", "Cek alamat IP publik internet saat ini"),
-    ("my-ip-detail <ip>", "curl -s ipinfo.io/<ip>", "Cek detail geolokasi, kota, ISP, dan ASN dari IP address"),
-    ("ip-lan-devices", "ip neigh", "List perangkat lain yang aktif di jaringan lokal / WiFi (ARP table)"),
-    ("ip-subnet-scan <subnet>", "nmap -sn <subnet>", "Scan seluruh host / IP aktif dalam satu subnet (cth: 192.168.1.0/24)"),
-    ("ip-route-table", "ip route show", "Tampilkan routing table & IP gateway router default"),
-    ("ip-interface-stats", "ip -s link", "Cek statistik interface jaringan (packet drop / RX-TX errors)"),
-
-    ("firewall-status", "sudo firewall-cmd --list-all 2>/dev/null || sudo ufw status verbose", "Cek status firewall & daftar port yang sedang terbuka"),
-    ("firewall-open <port>", "sudo firewall-cmd --add-port=<port>/tcp --permanent && sudo firewall-cmd --reload", "Buka port TCP pada firewall Fedora / RHEL"),
-    ("firewall-ufw-open <port>", "sudo ufw allow <port>/tcp", "Buka port TCP pada firewall UFW (Ubuntu / Debian)"),
-
-    ("trace-route <host>", "traceroute <host>", "Lacak rute hop perjalanan paket jaringan menuju target"),
-    ("ping-test <host>", "ping -c 5 <host>", "Tes latency & stabilitas koneksi (dibatasi 5 paket)"),
-    ("ping-mtu-check <packet_size> <host>", "ping -M do -s <packet_size> <host>", "Tes ukuran MTU tanpa fragmentasi (cth: 1472)"),
-    ("wifi-networks", "nmcli dev wifi list", "Scan dan list semua sinyal WiFi di sekitar"),
-]
-for name, cmd, desc in network_defaults:
-    add_entry("Network", name, cmd, desc)
-
-# ── 10. [Forensics] Suite ──
-forensics_defaults = [
-    ("case-proc-deleted-running", "ls -l /proc/*/exe 2>/dev/null | grep '(deleted)'", "Deteksi proses berjalan yang file binary aslinya sudah terhapus di disk"),
-    ("case-proc-env-strings <pid>", "strings /proc/<pid>/environ | tr '\\0' '\\n'", "Ekstrak environment variables & secret keys proses dari /proc"),
-    ("case-proc-network-listen", "sudo lsof -i -P -n | grep LISTEN", "Pemetaan lengkap proses aktif yang membuka port listening"),
-    ("proc-open-files <pid>", "lsof -p <pid>", "Audit handle file & koneksi socket dari suatu PID proses"),
-    ("case-memory-dump-process <pid> <output_file>", "sudo gcore -o <output_file> <pid>", "Dump snapshot memori RAM dari PID proses tertentu"),
-    ("case-failed-ssh-top-ips", "journalctl -u sshd --no-pager | grep -i \"Failed password\" | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head -n 20", "Top 20 IP penyerang yang gagal login SSH (Brute-force audit)"),
-    ("case-sudo-exec-history", "journalctl _COMM=sudo -S -24h --no-pager | grep \"COMMAND=\"", "Audit timeline perintah yang dieksekusi dengan hak sudo 24 jam terakhir"),
-    ("auth-log-timeline", "last -Fwx", "Riwayat lengkap timeline login & logout pengguna"),
-    ("case-wtmp-raw-dump", "utmpdump /var/log/wtmp | tail -n 30", "Dump rekaman raw log sesi autentikasi /var/log/wtmp"),
-    ("case-hash-tree-sha256 <dir>", "find <dir> -type f -exec sha256sum {} + | tee hashes.sha256", "Buat baseline hash SHA256 seluruh file untuk integritas data"),
-    ("case-find-modified-recent <dir> <minutes>", "find <dir> -type f -mmin -<minutes> -ls", "Cari file yang baru dibuat atau diubah dalam N menit terakhir"),
-    ("case-find-hidden-executables <dir>", "find <dir> -type f -name \".*\" -perm /111 -ls 2>/dev/null", "Deteksi file executable tersembunyi (berawalan titik)"),
-    ("case-find-suid-binaries", "find / -perm -4000 -type f -exec ls -la {} + 2>/dev/null", "Audit binary SUID (Pemeriksaan celah Privilege Escalation)"),
-    ("case-strings-suspicious <file>", "strings -a <file> | grep -Ei \"https?://|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+|/bin/sh|base64|cmd\\.exe|powershell\"", "Ekstrak IoC (IP, URL, command shell) dari file binary mentah"),
-    ("exif-metadata <file>", "exiftool <file>", "Ekstrak seluruh metadata tersembunyi dokumen / gambar"),
-    ("file-magic-check <file>", "file -b --mime-type <file>", "Periksa MIME type & magic bytes asli file terlepas dari ekstensinya"),
-    ("binwalk-analyze <file>", "binwalk <file>", "Analisis dan ekstrak komponen tersembunyi di dalam file / firmware"),
-    ("case-audit-all-crontabs", "for user in $(cut -f1 -d: /etc/passwd); do echo \"=== User: $user ===\"; crontab -u $user -l 2>/dev/null; done; ls -la /etc/cron*", "Audit scheduled task cron seluruh user untuk mencari persistence backdoor"),
-    ("case-audit-systemd-timers", "systemctl list-timers --all", "List seluruh timer service systemd yang terjadwal aktif"),
-    ("case-audit-autostart-services", "systemctl list-unit-files --type=service --state=enabled", "List seluruh service yang otomatis aktif saat boot sistem"),
-    ("case-audit-ssh-authorized-keys", "grep -H \"\" /home/*/.ssh/authorized_keys /root/.ssh/authorized_keys 2>/dev/null", "Periksa kunci publik SSH yang terdaftar di seluruh home user"),
-    ("disk-image-dd <source_dev> <output_img>", "sudo dd if=<source_dev> of=<output_img> bs=64K status=progress conv=noerror,sync", "Buat image bitstream raw forensik sektor-per-sektor"),
-]
-for name, cmd, desc in forensics_defaults:
-    add_entry("Forensics", name, cmd, desc)
-
-# ── 11. [Power] & Battery Management Suite ──
-power_defaults = [
-    ("battery-status", "upower -i $(upower -e | grep 'BAT' | head -n 1) 2>/dev/null || acpi -V 2>/dev/null", "Cek kapasitas sisa, status charging, voltage & health baterai laptop"),
-    ("battery-health", "cat /sys/class/power_supply/BAT*/capacity /sys/class/power_supply/BAT*/status 2>/dev/null", "Cek persentase baterai & status pengisian daya langsung dari kernel"),
-    ("battery-cycles", "cat /sys/class/power_supply/BAT*/cycle_count 2>/dev/null || upower -d | grep -i cycle", "Cek jumlah siklus pengisian daya baterai laptop (Cycle count)"),
-    ("power-top-consumers", "sudo powertop", "Diagnosa & audit aplikasi/hardware yang paling boros baterai"),
-    ("power-profile-get", "powerprofilesctl get", "Cek profil daya aktif laptop (performance / balanced / power-saver)"),
-    ("power-profile-set <mode>", "powerprofilesctl set <mode>", "Ganti profil daya laptop (performance / balanced / power-saver)"),
-    ("power-saver-on", "powerprofilesctl set power-saver", "Aktifkan mode hemat daya baterai maksimal (Power Saver)"),
-    ("power-balanced-on", "powerprofilesctl set balanced", "Aktifkan mode daya seimbang default (Balanced)"),
-    ("power-performance-on", "powerprofilesctl set performance", "Aktifkan mode performa tinggi (Performance)"),
-    ("brightness-get", "brightnessctl get 2>/dev/null || cat /sys/class/backlight/*/brightness 2>/dev/null", "Cek tingkat kecerahan layar monitor saat ini"),
-    ("brightness-set <pct>", "brightnessctl set <pct>%", "Atur persentase kecerahan layar laptop (cth: 50%)"),
-    ("system-suspend", "systemctl suspend", "Tidurkan sistem laptop (Sleep / Suspend)"),
-    ("system-hibernate", "systemctl hibernate", "Simpan sesi ke disk & matikan daya (Hibernate)"),
-    ("system-reboot", "systemctl reboot", "Restart komputer dengan aman"),
-    ("system-poweroff", "systemctl poweroff", "Matikan daya komputer / laptop sepenuhnya"),
-]
-for name, cmd, desc in power_defaults:
-    add_entry("Power", name, cmd, desc)
-
-# ── 12. [Hardware] Sensors & Devices Suite ──
-hardware_defaults = [
-    ("hardware-cpu-temp", "sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null", "Cek suhu temperatur CPU, GPU & motherboard realtime"),
-    ("hardware-cpu-info", "lscpu", "Informasi lengkap arsitektur CPU, core, thread & clock speed"),
-    ("hardware-pci-devices", "lspci -nnk", "Daftar seluruh perangkat bus PCI (VGA, WiFi, NVMe) & driver aktif"),
-    ("hardware-usb-devices", "lsusb", "Daftar seluruh perangkat USB yang terhubung (Keyboard, Mouse, Flashdisk)"),
-    ("hardware-ram-slots", "sudo dmidecode --type memory 2>/dev/null | grep -E \"Size:|Speed:|Type:\"", "Cek jumlah slot RAM, tipe DDR, dan frekuensi MHz terpasang"),
-    ("hardware-audio-status", "wpctl status 2>/dev/null || pactl list sinks 2>/dev/null", "Cek status perangkat output/input audio PipeWire & ALSA"),
-    ("bluetooth-scan", "bluetoothctl scan on", "Scan dan cari perangkat Bluetooth di sekitar"),
-    ("bluetooth-devices", "bluetoothctl devices", "Daftar perangkat Bluetooth yang tersimpan & terhubung"),
-    ("bluetooth-connect <mac>", "bluetoothctl connect <mac>", "Hubungkan ke perangkat Bluetooth berdasarkan MAC address"),
-]
-for name, cmd, desc in hardware_defaults:
-    add_entry("Hardware", name, cmd, desc)
-
-# ── 13. [Recovery] Real-World Data Recovery Suite ──
-recovery_defaults = [
-    ("recover-freeze-remount-ro <mountpoint>", "sudo mount -o remount,ro <mountpoint>", "Golden Rule #1: Kunci partisi menjadi Read-Only agar OS tidak menimpa data yang mau diselamatkan"),
-    ("recover-deleted-lsof", "lsof +L1 2>/dev/null | grep -i '(deleted)'", "Daftar seluruh file terhapus di sistem yang masih ditahan di RAM oleh aplikasi aktif"),
-    ("recover-deleted-proc-find <filename>", "ls -l /proc/*/fd/* 2>/dev/null | grep -i '<filename>' | grep '(deleted)'", "Cari file terhapus yang file descriptor-nya masih dipegang proses aktif"),
-    ("recover-deleted-proc-dump <pid> <fd> <out>", "cp /proc/<pid>/fd/<fd> <out>", "Salin & selamatkan file yang terhapus dari RAM/file descriptor proses"),
-    ("recover-fsck-ext4-force <partition>", "sudo e2fsck -f -y -v /dev/<partition>", "Paksa cek dan perbaiki filesystem Ext4/Ext3 yang korup atau read-only"),
-    ("recover-ext4-find-superblocks <partition>", "sudo mke2fs -n /dev/<partition>", "Cari lokasi nomor blok backup superblock alternatif Ext4"),
-    ("recover-ext4-restore-superblock <partition> <block>", "sudo e2fsck -b <block> /dev/<partition>", "Pulihkan partisi Ext4 menggunakan backup superblock cadangan"),
-    ("recover-xfs-zero-log <partition>", "sudo xfs_repair -L /dev/<partition>", "Perbaiki partisi XFS rusak dengan menghapus log transaksi korup agar bisa di-mount"),
-    ("recover-btrfs-salvage <partition> <dest>", "sudo btrfs restore -v -D /dev/<partition> <dest>", "Ekstrak & selamatkan seluruh file dari partisi Btrfs rusak tanpa perlu mount"),
-    ("recover-disk-ddrescue-fast <src_dev> <img_file>", "sudo ddrescue -d -n /dev/<src_dev> <img_file> mapfile.log", "Tahap 1: Kloning sektor sehat harddisk/flashdisk rusak secepat mungkin tanpa retry"),
-    ("recover-disk-ddrescue-retry <src_dev> <img_file>", "sudo ddrescue -d -r 3 /dev/<src_dev> <img_file> mapfile.log", "Tahap 2: Coba baca ulang sektor bad block yang error sebanyak 3 kali"),
-    ("recover-disk-stream-ssh <src_dev> <user@host> <dest_img>", "sudo dd if=/dev/<src_dev> bs=64K conv=noerror,sync | gzip -1 | ssh <user@host> \"gzip -d > <dest_img>\"", "Streaming kloning disk rusak langsung ke server remote tanpa sentuh disk lokal"),
-    ("recover-partition-testdisk <dev>", "sudo testdisk /dev/<dev>", "Deteksi & pulihkan tabel partisi MBR/GPT yang hilang atau terformat"),
-    ("recover-carve-photorec <dev>", "sudo photorec /dev/<dev>", "Ekstraksi mendalam ribuan jenis file terhapus dari unallocated disk sectors"),
-    ("recover-carve-foremost <type> <img_file> <out_dir>", "foremost -t <type> -i <img_file> -o <out_dir>", "Carving file spesifik (png, jpg, pdf, docx, zip) dari image mentah"),
-    ("recover-ext4-undelete-all <dev> <out_dir>", "sudo ext4magic /dev/<dev> -M -d <out_dir> 2>/dev/null || sudo extundelete /dev/<dev> --restore-all", "Pulihkan seluruh file yang baru saja terhapus di partisi Ext4"),
-    ("recover-grep-raw-text <partition> <keyword> <out>", "sudo grep -a -b -C 100 \"<keyword>\" /dev/<partition> > <out>", "Cari & ekstrak kodingan/teks yang tertimpa langsung dari blok sektor partisi disk"),
-    ("recover-strings-carve <img_file> <keyword>", "strings -t d <img_file> | grep -C 10 \"<keyword>\"", "Pindai string teks ASCII dari dump disk image mentah"),
-    ("recover-mount-image-ro <img_file> <mountpoint>", "sudo mount -o loop,ro,noload <img_file> <mountpoint>", "Mount image disk forensik secara aman murni Read-Only tanpa replay log"),
-    ("recover-disk-smart-health <dev>", "sudo smartctl -H -A /dev/<dev> | grep -E \"Reallocated|Pending|Uncorrectable|Health|Status\"", "Periksa indikator kritis kesehatan fisik harddisk / SSD"),
-    ("recover-git-reflog-undo", "git reflog | head -n 25", "Lacak seluruh histori perpindahan HEAD untuk menyelamatkan commit yang hilang"),
-    ("recover-git-lost-found", "git fsck --lost-found && ls -la .git/lost-found/commit/", "Temukan dangling commits yang terputus dari branch / reset hard"),
-    ("recover-git-lost-stash", "git log --graph --oneline --decorate $(git fsck --no-reflogs | awk '/dangling commit/ {print $3}')", "Temukan commit stash yang terhapus / ter-drop tidak sengaja"),
-]
-for name, cmd, desc in recovery_defaults:
-    add_entry("Recovery", name, cmd, desc)
-
-# ── 14. [Fedora] DNF5, Flatpak, Btrfs & SELinux Suite ──
-fedora_defaults = [
-    ("dnf-fast-update", "sudo dnf update --refresh -y", "Refresh repositori & update seluruh paket sistem Fedora sekaligus"),
-    ("dnf-clean-all", "sudo dnf clean all && sudo dnf autoremove -y", "Bersihkan cache RPM & hapus paket orphan yang sudah tidak terpakai"),
-    ("dnf-history-list", "dnf history list", "Lihat daftar riwayat transaksi instalasi / update paket"),
-    ("dnf-history-rollback <id>", "sudo dnf history rollback <id>", "Rollback transaksi instalasi / update paket jika terjadi masalah"),
-    ("dnf-find-owner <file_path>", "dnf provides <file_path>", "Cari paket apa yang menyediakan binary atau file tertentu"),
-    ("dnf-search-package <name>", "dnf search <name>", "Cari paket RPM di seluruh repositori Fedora yang aktif"),
-    ("flatpak-update-clean", "flatpak update -y && flatpak uninstall --unused -y", "Update seluruh aplikasi Flatpak & bersihkan runtime tak terpakai"),
-    ("flatpak-list-apps", "flatpak list --app", "Daftar seluruh aplikasi Flatpak yang terpasang di sistem"),
-    ("flatpak-permission-override <app_id> <dir>", "flatpak override <app_id> --filesystem=<dir>", "Beri izin akses direktori host ke aplikasi Flatpak sandbox"),
-    ("rpm-verify-all", "rpm -Va", "Verifikasi integritas seluruh file binary sistem terhadap database RPM"),
-    ("fedora-selinux-denials", "sudo ausearch -m avc -ts recent 2>/dev/null || sudo journalctl -t setroubleshoot -n 20", "Cek log permission sistem yang diblokir oleh SELinux"),
-    ("fedora-btrfs-compress-status", "sudo compsize / 2>/dev/null || sudo btrfs filesystem usage /", "Cek rasio kompresi disk ZSTD pada filesystem Btrfs Fedora"),
-    ("fedora-btrfs-balance", "sudo btrfs balance start -dusage=50 -musage=50 /", "Seimbangkan alokasi blok data & metadata filesystem Btrfs"),
-    ("fedora-kernel-list", "rpm -q kernel-core", "Lihat versi kernel Linux yang terpasang di sistem"),
-]
-for name, cmd, desc in fedora_defaults:
-    add_entry("Fedora", name, cmd, desc)
-
-# ── 15. [COSMIC] Desktop & Wayland Compositor Suite ──
-cosmic_defaults = [
-    ("cosmic-restart-panel", "pkill -f cosmic-panel && nohup cosmic-panel >/dev/null 2>&1 &", "Restart panel COSMIC jika applet hang atau freeze"),
-    ("cosmic-restart-comp", "pkill -HUP cosmic-comp", "Kirim reload signal ke compositor COSMIC tanpa logout"),
-    ("cosmic-applets-active", "ps aux | grep cosmic-applet | grep -v grep", "Daftar seluruh applet COSMIC yang sedang berjalan di RAM"),
-    ("cosmic-applet-logs <applet>", "journalctl --user -u cosmic-applet-<applet> -f", "Pantau live log error applet COSMIC tertentu"),
-    ("cosmic-randr-status", "cosmic-randr list", "Cek status monitor, resolusi & refresh rate layar Wayland"),
-    ("cosmic-randr-mirror <disp1> <disp2>", "cosmic-randr mirror <disp1> <disp2>", "Mirror tampilan layar HDMI ke monitor laptop internal eDP"),
-    ("cosmic-settings-open <page>", "cosmic-settings <page>", "Buka halaman pengaturan COSMIC (keyboard/displays/power/appearance)"),
-    ("cosmic-shortcuts-backup", "cp ~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom ~/cosmic_shortcuts_backup.ron", "Backup seluruh konfigurasi shortcut keyboard COSMIC kustom"),
-    ("cosmic-theme-export", "tar -czvf ~/cosmic-theme-backup.tar.gz ~/.config/cosmic/com.system76.CosmicTheme*", "Export dan backup tema warna COSMIC aktif ke tar.gz"),
-    ("wayland-copy-text <file>", "wl-copy < <file>", "Salin isi file teks langsung ke clipboard Wayland"),
-    ("wayland-paste-text <out_file>", "wl-paste > <out_file>", "Paste isi clipboard Wayland ke file"),
-    ("wayland-screenshot-area", "grim -g \"$(slurp)\" ~/Pictures/screenshot_$(date +%s).png", "Screenshot area layar Wayland secara interaktif"),
-    ("wayland-pipewire-restart", "systemctl --user restart pipewire pipewire-pulse wireplumber", "Restart total audio stack & screen sharing PipeWire Wayland"),
-]
-for name, cmd, desc in cosmic_defaults:
-    add_entry("COSMIC", name, cmd, desc)
-
-# ── 16. [Security] SSH, Crypto, Secrets & SSL Suite ──
-security_defaults = [
-    ("ssh-gen-ed25519", "ssh-keygen -t ed25519 -C \"$USER@$(hostname)\"", "Generate pasangan kunci SSH Ed25519 modern super aman"),
-    ("ssh-copy-remote <user@host>", "ssh-copy-id -i ~/.ssh/id_ed25519.pub <user@host>", "Copy SSH public key ke server remote untuk login tanpa password"),
-    ("ssh-test-verbose <user@host>", "ssh -vT <user@host>", "Uji koneksi SSH dengan log verbose untuk debugging auth error"),
-    ("ssh-fingerprint-hosts", "ssh-keygen -l -f ~/.ssh/known_hosts", "Lihat daftar fingerprint host SSH yang tersimpan"),
-    ("secret-gen-token <bytes>", "openssl rand -base64 <bytes>", "Generate random base64 string untuk token JWT / secret key"),
-    ("secret-gen-hex <bytes>", "openssl rand -hex <bytes>", "Generate random hexadecimal string (cth: secret API key)"),
-    ("file-encrypt-aes <file>", "openssl enc -aes-256-cbc -salt -pbkdf2 -in <file> -out <file>.enc", "Enkripsi file penting dengan algoritma AES-256-CBC"),
-    ("file-decrypt-aes <file.enc>", "openssl enc -d -aes-256-cbc -pbkdf2 -in <file.enc> -out <file>", "Dekripsi file terenkripsi AES-256-CBC kembali ke format asli"),
-    ("ssl-cert-check-expiry <domain>", "echo | openssl s_client -servername <domain> -connect <domain>:443 2>/dev/null | openssl x509 -noout -dates", "Periksa masa berlaku sertifikat SSL domain HTTPS"),
-    ("hash-sha256-check <file>", "sha256sum <file>", "Hitung nilai checksum SHA-256 file untuk verifikasi integritas"),
-    ("hash-md5-check <file>", "md5sum <file>", "Hitung nilai checksum MD5 file"),
-]
-for name, cmd, desc in security_defaults:
-    add_entry("Security", name, cmd, desc)
-
-# ── 17. [Media] FFmpeg & Image Conversion Swiss-Army Knife ──
-media_defaults = [
-    ("media-mp4-to-gif <video> <output.gif>", "ffmpeg -i <video> -vf \"fps=15,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" -loop 0 <output.gif>", "Konversi video MP4 menjadi animasi GIF berkualitas tinggi untuk README/demo"),
-    ("media-compress-discord <video> <out.mp4>", "ffmpeg -i <video> -vcodec libx264 -crf 28 -preset fast <out.mp4>", "Kompresi video MP4 agar ringan (<10MB) untuk dikirim di chat Discord/WhatsApp"),
-    ("media-extract-mp3 <video> <out.mp3>", "ffmpeg -i <video> -vn -acodec libmp3lame -q:a 2 <out.mp3>", "Ekstrak track audio dari video menjadi file MP3 berkualitas tinggi"),
-    ("media-trim-lossless <input> <start> <end> <out>", "ffmpeg -ss <start> -to <end> -i <input> -c copy <out>", "Potong durasi video secara instan tanpa re-encoding (Lossless 0.1 detik)"),
-    ("media-batch-convert-webp", "for f in *.{png,jpg,jpeg}; do [ -f \"$f\" ] && cwebp -q 85 \"$f\" -o \"${f%.*}.webp\"; done", "Konversi massal seluruh file gambar PNG/JPG dalam folder menjadi WebP"),
-    ("media-probe-metadata <file>", "ffprobe -v error -show_format -show_streams <file>", "Inspeksi metadata, resolusi, codec, bitrate, dan FPS file media"),
-]
-for name, cmd, desc in media_defaults:
-    add_entry("Media", name, cmd, desc)
-
-# ── 18. [Utility] Terminal Productivity & Daily Quickies ──
-utility_defaults = [
-    ("my-public-ip", "curl -s https://ipinfo.io | jq .", "Cek alamat IP publik, provider ISP, negara, dan lokasi geografis"),
-    ("weather-live", "curl -s wttr.in", "Lihat laporan prakiraan cuaca visual di terminal"),
-    ("weather-city <city>", "curl -s wttr.in/<city>", "Lihat prakiraan cuaca kota tertentu di terminal"),
-    ("qrcode-terminal <text>", "qrencode -t ansiutf8 \"<text>\"", "Generate QR code langsung di terminal untuk di-scan lewat kamera HP"),
-    ("speedtest-internet", "curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -", "Ukur kecepatan download, upload & latency ping koneksi internet"),
-    ("timer-countdown <mins>", "sleep $(($mins * 60)) && notify-send -u critical \"⏰ Timer Selesai!\" \"Waktu $mins menit sudah habis.\"", "Jalankan timer di background dan kirim notifikasi desktop saat selesai"),
-    ("epoch-to-datetime <timestamp>", "date -d @<timestamp>", "Konversi Unix Epoch Timestamp (detik) ke tanggal & jam lokal"),
-    ("datetime-to-epoch", "date +%s", "Ambil Unix Epoch Timestamp saat ini dalam hitungan detik"),
-]
-for name, cmd, desc in utility_defaults:
-    add_entry("Utility", name, cmd, desc)
-
-# ── 11. Parse User Shell Configuration (.zshrc / .bashrc) ──
-for rc in shell_rcs:
-    if not os.path.exists(rc):
-        continue
-    with open(rc, "r", encoding="utf-8", errors="ignore") as f:
-        current_cat = "General"
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            cat_match = re.match(r"^#\s*[─\-\=]+\s*(.*?)\s*[─\-\=]+", line)
-            if cat_match:
-                current_cat = cat_match.group(1).strip()
-                continue
-            
-            alias_match = re.match(r"^alias\s+([^=]+)=[\"\x27](.*?)[\"\x27](?:\s*#\s*(.*))?$", line)
-            if alias_match:
-                name = alias_match.group(1).strip()
-                cmd = alias_match.group(2).strip()
-                comment = alias_match.group(3).strip() if alias_match.group(3) else f"Alias untuk {cmd}"
-                
-                display_name = name
-                exec_cmd = cmd
-                if name in ["gco", "gsw", "gb"]:
-                    if "<branch>" not in exec_cmd: exec_cmd += " <branch>"
-                    display_name += " <branch>"
-                elif name in ["din", "drem", "dinfo"]:
-                    if "<package>" not in exec_cmd: exec_cmd += " <package>"
-                    display_name += " <package>"
-                elif name in ["psg", "pk"]:
-                    if "<process_name>" not in exec_cmd: exec_cmd += " <process_name>"
-                    display_name += " <process_name>"
-                elif name in ["k9"]:
-                    if "<pid>" not in exec_cmd: exec_cmd += " <pid>"
-                    display_name += " <pid>"
-                elif name in ["scs", "scr", "scstart", "scstop", "sce", "jl"]:
-                    if "<service>" not in exec_cmd: exec_cmd += " <service>"
-                    display_name += " <service>"
-                elif name in ["jfu"]:
-                    if "<unit>" not in exec_cmd: exec_cmd += " <unit>"
-                    display_name += " <unit>"
-                elif name in ["gcm"]:
-                    if "<message>" not in exec_cmd: exec_cmd += ' "<message>"'
-                    display_name += ' "<message>"'
-                elif name in ["cat", "rm", "grs"]:
-                    if "<file>" not in exec_cmd: exec_cmd += " <file>"
-                    display_name += " <file>"
-                elif name in ["cp", "mv"]:
-                    if "<src>" not in exec_cmd: exec_cmd += " <src> <dst>"
-                    display_name += " <src> <dst>"
-                elif name in ["mkd"]:
-                    if "<folder>" not in exec_cmd: exec_cmd += " <folder>"
-                    display_name += " <folder>"
-                elif name in ["untar"]:
-                    if "<file.tar>" not in exec_cmd: exec_cmd += " <file.tar>"
-                    display_name += " <file.tar>"
-                elif name in ["ping"]:
-                    if "<host>" not in exec_cmd: exec_cmd += " <host>"
-                    display_name += " <host>"
-                elif name in ["zja", "zjk", "zjn", "zjd"]:
-                    if "<session>" not in exec_cmd: exec_cmd += " <session>"
-                    display_name += " <session>"
-
-                cat_clean = re.sub(r"^[0-9\.\s]+", "", current_cat)
-                if "Git" in cat_clean: cat_clean = "Git"
-                elif "Zellij" in cat_clean: cat_clean = "Zellij"
-                elif "Systemd" in cat_clean: cat_clean = "Systemd"
-                elif "Fedora" in cat_clean or "DNF" in cat_clean or "Package" in cat_clean or "RPM" in cat_clean or "Flatpak" in cat_clean: cat_clean = "Fedora"
-                elif "COSMIC" in cat_clean or "Wayland" in cat_clean: cat_clean = "COSMIC"
-                elif "Security" in cat_clean or "Crypto" in cat_clean or "SSH" in cat_clean: cat_clean = "Security"
-                elif "Media" in cat_clean or "FFmpeg" in cat_clean or "Video" in cat_clean or "Audio" in cat_clean: cat_clean = "Media"
-                elif "Utility" in cat_clean or "Util" in cat_clean or "Tools" in cat_clean: cat_clean = "Utility"
-                elif "Monitor" in cat_clean or "Process" in cat_clean or "Disk" in cat_clean: cat_clean = "System"
-                elif "Battery" in cat_clean or "Power" in cat_clean: cat_clean = "Power"
-                elif "Hardware" in cat_clean or "Sensor" in cat_clean or "Bluetooth" in cat_clean: cat_clean = "Hardware"
-                elif "Recovery" in cat_clean or "Restore" in cat_clean or "Undelete" in cat_clean: cat_clean = "Recovery"
-                elif "Go" in cat_clean or "Golang" in cat_clean: cat_clean = "Go"
-                elif "Rust" in cat_clean or "Cargo" in cat_clean: cat_clean = "Rust"
-                elif "Python" in cat_clean or "Py" in cat_clean: cat_clean = "Python"
-                elif "PHP" in cat_clean or "Laravel" in cat_clean: cat_clean = "PHP"
-                elif "File" in cat_clean or "Eza" in cat_clean or "Bat" in cat_clean: cat_clean = "File"
-                elif "Nav" in cat_clean or "Quick" in cat_clean: cat_clean = "Nav"
-                elif "Web" in cat_clean or "Dev" in cat_clean: cat_clean = "Dev"
-                elif "Network" in cat_clean or "IP" in cat_clean: cat_clean = "Network"
-
-                add_entry(cat_clean, display_name, exec_cmd, comment)
-
-# ── 12. Append Custom User Commands from custom.tsv ──────
-if os.path.exists(custom_path):
-    with open(custom_path, "r", encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            parts = line.split("\t")
-            if len(parts) == 2:
-                add_entry("Custom", parts[0], parts[1], parts[0])
-            elif len(parts) == 3:
-                cat = "Custom"
-                desc = parts[2]
-                if desc.startswith("[") and "]" in desc:
-                    cat = desc.split("]")[0].replace("[", "").strip()
-                    desc = desc.split("]")[1].strip()
-                add_entry(cat, parts[0], parts[1], desc)
-            elif len(parts) >= 4:
-                add_entry(parts[0], parts[1], parts[2], parts[3])
-
-os.makedirs(ezysh_dir, exist_ok=True)
-with open(db_path, "w", encoding="utf-8") as f:
-    for cat, name, cmd, desc in entries:
-        f.write(f"{cat}\t{name}\t{cmd}\t{desc}\n")
-PYEOF
-}
-
-# ── Auto-sync if database is missing or outdated ──
-SHELL_RC="$HOME/.zshrc"
-[ ! -f "$SHELL_RC" ] && SHELL_RC="$HOME/.bashrc"
-if [ ! -f "$DB_FILE" ] || { [ -f "$SHELL_RC" ] && [ "$SHELL_RC" -nt "$DB_FILE" ]; }; then
-    sync_aliases
-fi
-
-# ── CLI Arguments Handling ────────────────────────
-case "$1" in
-    -a|--add)
-        NAME="$2"
-        CMD="$3"
-        DESC="$4"
-        CAT="${5:-Custom}"
-
-        if [ -z "$NAME" ] || [ -z "$CMD" ]; then
-            echo -e "\033[1;31mUsage:\033[0m ezysh --add <name> <command> <description> [category]"
-            echo -e "\033[0;37mExample:\033[0m ezysh --add \"dclean\" \"docker system prune -af\" \"Bersihkan docker\" \"Docker\""
-            exit 1
+# ── Function: Fast Compiler / Database Sync ───────────────────────────────────
+sync_database() {
+    mkdir -p "$CONFIG_DIR"
+    {
+        [ -f "$DEFAULTS_FILE" ] && cat "$DEFAULTS_FILE"
+        if [ -f "$CUSTOM_FILE" ]; then
+            awk -F'\t' '
+            /^#/ || /^$/ { next }
+            NF >= 4 {
+                cat = $1; name = $2; cmd = $3; desc = $4;
+                gsub(/^\[|\]$/, "", cat);
+                printf "[%s]\t%s\t%s\t%s\n", cat, name, cmd, desc;
+                next
+            }
+            NF == 3 {
+                name = $1; cmd = $2; rest = $3;
+                if (match(rest, /^\[([^\]]+)\][ \t]*(.*)/)) {
+                    sub(/^\[/, "", rest)
+                    idx = index(rest, "]")
+                    cat = substr(rest, 1, idx - 1)
+                    desc = substr(rest, idx + 1)
+                    sub(/^[ \t]+/, "", desc)
+                } else {
+                    cat = "Custom"; desc = rest;
+                }
+                printf "[%s]\t%s\t%s\t%s\n", cat, name, cmd, desc;
+                next
+            }
+            NF == 2 {
+                printf "[Custom]\t%s\t%s\t%s\n", $1, $2, $1;
+                next
+            }
+            ' "$CUSTOM_FILE"
         fi
+    } > "$DB_FILE"
+}
 
-        [ ! -f "$CUSTOM_FILE" ] && echo "# ezysh custom commands database" > "$CUSTOM_FILE"
-        echo -e "${NAME}\t${CMD}\t[${CAT}] ${DESC}" >> "$CUSTOM_FILE"
-        sync_aliases
-        echo -e "\033[1;32m⚡ ezysh:\033[0m Successfully added '\033[1;37m$NAME\033[0m' to [$CAT] commands!"
-        exit 0
-        ;;
-    -s|--sync)
-        sync_aliases
-        count=$(wc -l < "$DB_FILE" 2>/dev/null || echo 0)
-        echo "⚡ ezysh: Successfully synced $count commands into database!"
-        exit 0
-        ;;
-    -e|--edit)
-        [ ! -f "$CUSTOM_FILE" ] && echo "# Add custom commands: Name<TAB>Command<TAB>[Category] Description" > "$CUSTOM_FILE"
-        ${EDITOR:-nano} "$CUSTOM_FILE"
-        sync_aliases
-        exit 0
-        ;;
-    -l|--list)
-        cat "$DB_FILE"
-        exit 0
-        ;;
-    -v|--version)
-        echo "ezysh v$VERSION by intuezy"
-        exit 0
-        ;;
-    -h|--help)
-        echo "ezysh — The aesthetic, intuitive command palette for your shell."
-        echo ""
-        echo "Usage: ezysh [options] [query]"
-        echo ""
-        echo "Tip: Type 'node', 'database', 'api', 'docker', 'git', 'linux' to filter by category!"
-        echo "Tip: Type 'case' to find end-to-end multi-step workflow recipes!"
-        echo ""
-        echo "Options:"
-        echo "  -a, --add      Quick add a new command snippet: ezysh -a <name> <cmd> <desc> [cat]"
-        echo "  -s, --sync     Sync aliases and curated defaults into database"
-        echo "  -e, --edit     Open custom commands file for manual editing"
-        echo "  -l, --list     Print all stored commands to standard output"
-        echo "  -v, --version  Show version"
-        echo "  -h, --help     Show this help message"
-        exit 0
-        ;;
-esac
+# ── Function: Add Custom Command ──────────────────────────────────────────────
+add_command() {
+    local name="${1:-}"
+    local cmd="${2:-}"
+    local desc="${3:-}"
+    local cat="${4:-Custom}"
 
-# Check for fzf dependency
-if ! command -v fzf &>/dev/null; then
-    echo "ezysh: fzf is required but not installed. Please install fzf first." >&2
-    exit 1
-fi
+    if [ -z "$name" ] || [ -z "$cmd" ]; then
+        echo -e "\033[1;31mUsage:\033[0m ezysh --add <name> <command> <description> [category]"
+        echo -e "\033[0;37mExample:\033[0m ezysh --add \"dclean\" \"docker system prune -af\" \"Bersihkan docker\" \"Docker\""
+        exit 1
+    fi
 
-INITIAL_QUERY="$1"
-
-# ── Interactive Aesthetic FZF Palette ─────────────
-selected=$(awk -F'\t' '
-BEGIN { OFS="\t" }
-/^#/ || /^$/ { next }
-{
-    cat = $1
-    name = $2
-    cmd = $3
-    desc = $4
-    printf "\033[0;35m%-12s\033[0m \033[1;37m%s\033[0m\t%s\t%d\n", cat, name, cmd, NR
-}' "$DB_FILE" | fzf \
-    --ansi \
-    --delimiter='\t' \
-    --with-nth=1 \
-    --query="$INITIAL_QUERY" \
-    --height=60% \
-    --layout=reverse \
-    --border=sharp \
-    --border-label=" ⚡ ezysh " \
-    --border-label-pos=3 \
-    --prompt="   " \
-    --pointer="❯" \
-    --marker="●" \
-    --info=inline-right \
-    --color="bg:-1,bg+:#342f4b,fg:#7f849c,fg+:#e6e6fa,hl:#f38ba8,hl+:#f38ba8,info:#7f849c,prompt:#cba6f7,pointer:#cba6f7,marker:#a6e3a1,spinner:#cba6f7,border:#342f4b,header:#7f849c" \
-    --preview="ezysh --preview-line {3}" \
-    --preview-window=right:48%:wrap:border-left)
-
-if [ -z "$selected" ]; then
+    [ ! -f "$CUSTOM_FILE" ] && echo "# ezysh custom commands database" > "$CUSTOM_FILE"
+    echo -e "${name}\t${cmd}\t[${cat}] ${desc}" >> "$CUSTOM_FILE"
+    sync_database
+    log_info "Successfully added '\033[1;37m$name\033[0m' to [$cat] commands!"
     exit 0
-fi
+}
 
-# Extract execution command (column 2 in tab delimiter)
-cmd=$(echo "$selected" | awk -F'\t' '{print $2}')
+# ── Function: Interactive Parameter Prompts ───────────────────────────────────
+prompt_parameters() {
+    local target_cmd="$1"
+    if [[ ! "$target_cmd" =~ \<([^>]+)\> ]] || [ ! -t 0 ] || [ ! -t 1 ]; then
+        echo "$target_cmd"
+        return
+    fi
 
-# ── Interactive Parameter Replacement ─────────────
-if [[ "$cmd" =~ \<([^>]+)\> ]] && [ -t 0 ] && [ -t 1 ]; then
-    placeholders=$(echo "$cmd" | grep -o '<[^>]*>' | sort -u)
+    local placeholders
+    placeholders=$(echo "$target_cmd" | grep -o '<[^>]*>' | sort -u)
     for p in $placeholders; do
-        param_clean="${p:1:-1}"
+        local user_val=""
         echo -ne "\033[1;35m  ⚡ Enter \033[1;32m$p\033[1;35m (press Enter to skip): \033[0m" > /dev/tty
         read -r user_val < /dev/tty
         if [ -n "$user_val" ]; then
-            cmd="${cmd//$p/$user_val}"
+            target_cmd="${target_cmd//$p/$user_val}"
         fi
     done
-fi
+    echo "$target_cmd"
+}
 
-echo "$cmd"
+# ── Function: Show Help ───────────────────────────────────────────────────────
+show_help() {
+    echo "ezysh — The aesthetic, intuitive command palette for your shell."
+    echo ""
+    echo "Usage: ezysh [options] [query]"
+    echo ""
+    echo "Tip: Type your intent (e.g. 'kill port', 'undo commit', 'clean disk') to find recipes!"
+    echo ""
+    echo "Options:"
+    echo "  -a, --add      Quick add a new command snippet: ezysh -a <name> <cmd> <desc> [cat]"
+    echo "  -s, --sync     Sync defaults and custom commands into database"
+    echo "  -e, --edit     Open custom commands file for manual editing"
+    echo "  -l, --list     Print all stored commands to standard output"
+    echo "  -v, --version  Show version"
+    echo "  -h, --help     Show this help message"
+}
+
+# ── Function: Main Interactive Palette ────────────────────────────────────────
+launch_palette() {
+    local initial_query="${1:-}"
+
+    # Guard Clause: Verify fzf dependency early
+    if ! command -v fzf &>/dev/null; then
+        log_error "fzf is required but not installed. Please install fzf first."
+        exit 1
+    fi
+
+    local fzf_colors="${EZYSH_FZF_COLORS:-$DEFAULT_COLORS}"
+    local selected=""
+
+    selected=$(awk -F'\t' '
+    BEGIN { OFS="\t" }
+    /^#/ || /^$/ { next }
+    {
+        cat = $1; name = $2; cmd = $3; desc = $4;
+        display = sprintf("\033[0;35m%-12s\033[0m \033[1;37m%-24s\033[0m \033[0;90m│ %s\033[0m", cat, name, desc)
+        printf "%s\t%s\t%d\t%s\t%s\n", display, cmd, NR, desc, name
+    }' "$DB_FILE" | fzf \
+        --ansi \
+        --delimiter='\t' \
+        --with-nth=1 \
+        --nth=1,2,4,5 \
+        --query="$initial_query" \
+        --height=60% \
+        --layout=reverse \
+        --border=sharp \
+        --border-label=" ⚡ ezysh " \
+        --border-label-pos=3 \
+        --prompt="   " \
+        --pointer="❯" \
+        --marker="●" \
+        --info=inline-right \
+        --color="$fzf_colors" \
+        --preview="ezysh --preview-line {3}" \
+        --preview-window=right:48%:wrap:border-left || true)
+
+    # Guard Clause: User cancelled or nothing selected
+    [ -z "$selected" ] && exit 0
+
+    local raw_cmd
+    raw_cmd=$(echo "$selected" | awk -F'\t' '{print $2}')
+    prompt_parameters "$raw_cmd"
+}
+
+# ── Main Entrypoint Dispatcher ────────────────────────────────────────────────
+main() {
+    [ -r "$THEME_FILE" ] && source "$THEME_FILE"
+    mkdir -p "$CONFIG_DIR"
+
+    # Auto-sync cache if database is missing or outdated
+    if [ ! -f "$DB_FILE" ] || [ "$DEFAULTS_FILE" -nt "$DB_FILE" ] || { [ -f "$CUSTOM_FILE" ] && [ "$CUSTOM_FILE" -nt "$DB_FILE" ]; }; then
+        sync_database
+    fi
+
+    local action="${1:-}"
+    case "$action" in
+        --preview-line)
+            render_preview "${2:-0}"
+            ;;
+        -a|--add)
+            add_command "${2:-}" "${3:-}" "${4:-}" "${5:-Custom}"
+            ;;
+        -s|--sync)
+            sync_database
+            local count
+            count=$(wc -l < "$DB_FILE" 2>/dev/null || echo 0)
+            log_info "Successfully synced $count commands into database!"
+            exit 0
+            ;;
+        -e|--edit)
+            [ ! -f "$CUSTOM_FILE" ] && echo "# Add custom commands: Name<TAB>Command<TAB>[Category] Description" > "$CUSTOM_FILE"
+            ${EDITOR:-nano} "$CUSTOM_FILE"
+            sync_database
+            exit 0
+            ;;
+        -l|--list)
+            cat "$DB_FILE"
+            exit 0
+            ;;
+        -v|--version)
+            echo "ezysh v$VERSION by intuezy"
+            exit 0
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            launch_palette "$action"
+            ;;
+    esac
+}
+
+main "$@"

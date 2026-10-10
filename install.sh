@@ -19,7 +19,6 @@ echo -e "\033[0m"
 # ── 1. Check Dependencies ────────────────────────
 MISSING_DEPS=()
 command -v fzf >/dev/null 2>&1 || MISSING_DEPS+=("fzf")
-command -v python3 >/dev/null 2>&1 || MISSING_DEPS+=("python3")
 command -v git >/dev/null 2>&1 || MISSING_DEPS+=("git")
 
 if [ ${#MISSING_DEPS[@]} -gt 0 ]; then

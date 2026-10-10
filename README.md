@@ -147,7 +147,6 @@ my-script <target>	python3 script.py --target <target>	[Python] Run automation s
 
 ## 📋 Requirements
 - `fzf` (Fuzzy finder)
-- `python3` (Safe preview card renderer)
 - `zsh`, `bash`, or `fish`
 
 ---
