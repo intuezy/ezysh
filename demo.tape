@@ -1,54 +1,52 @@
 Output assets/demo.gif
 
-Set FontSize 15
+Set FontSize 16
 Set Width 1050
-Set Height 600
-Set Padding 15
+Set Height 580
+Set Padding 18
 Set Theme "Catppuccin Mocha"
 Set WindowBar Colorful
 Set TypingSpeed 60ms
 
 Hide
-Type "source ~/.bashrc"
+Type "export PS1='❯ '"
 Enter
 Type "clear"
 Enter
 Show
 
-Sleep 800ms
+Sleep 600ms
 
-# Launch palette
+# 1. First scenario: Search by intent "kill port"
 Type "ezy"
-Sleep 500ms
+Sleep 400ms
 Enter
 
-Sleep 1s
-
-# Type intent: kill port
+Sleep 800ms
 Type "kill port"
-Sleep 1.5s
-Enter
-
-# Fill parameter: 3000
-Sleep 1s
-Type "3000"
-Sleep 500ms
-Enter
-
 Sleep 2s
+Enter
 
-# Clear and show next intent: undo commit
+Sleep 800ms
+Type "3000"
+Sleep 800ms
+Enter
+
+Sleep 2.5s
+
+# Clear for next scenario
 Type "clear"
 Enter
-Sleep 800ms
+Sleep 600ms
 
+# 2. Second scenario: Search by intent "docker clean"
 Type "ezy"
-Sleep 500ms
+Sleep 400ms
 Enter
 
-Sleep 1s
-Type "undo commit"
-Sleep 1.5s
+Sleep 800ms
+Type "docker clean"
+Sleep 2.5s
 Enter
 
-Sleep 2s
+Sleep 2.5s
