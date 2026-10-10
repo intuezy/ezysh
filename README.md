@@ -6,7 +6,7 @@ Hit `Ctrl + K`, type what you want to do in plain English or Indonesian, and get
 
 ```text
 ┌─ ⚡ ezysh ──────────────────────────────────────────────────────────────────┐
-│  kill port                                                         324/324 │
+│  kill port                                                         215/215 │
 │                                              │                              │
 │ ❯ [Network]  case-kill-port <port>           │   🏷  CATEGORY                │
 │              │ Paksa matikan proses di port  │   Network                    │
@@ -110,12 +110,12 @@ ln -s ~/.ezysh/ezysh.fish ~/.config/fish/conf.d/ezysh.fish
 
 ## Built-in Commands
 
-`ezysh` includes 300+ built-in commands across daily developer workflows:
+`ezysh` includes 200+ curated built-in commands across daily developer workflows:
 
 - **Docker & Compose**: Service controls, restart policies, container shells, system purges.
 - **Git**: Undoing commits, stash salvage, amending history, branch cleanups.
 - **Networking**: Port killing, reverse SSH tunnels, SOCKS proxies, SSL expiry checks.
-- **Linux & Recovery**: Salvaging deleted files from `/proc/*/fd`, disk repair, process tracking.
+- **Linux & System**: Space hogs locator, journald error filters, file/dir permissions, process inspection.
 - **Dev Stacks**: Node.js, Go, Rust, Python, PostgreSQL, Redis.
 
 All default commands live in `share/defaults.tsv` as clean, tab-separated text.
