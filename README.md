@@ -1,31 +1,35 @@
 <div align="center">
 
 # ⚡ ezysh
-### *The aesthetic, intuitive command palette & alias launcher for your shell.*
+### *The terminal command palette for commands you always forget.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
 [![Shell: Zsh | Bash | Fish](https://img.shields.io/badge/Shell-Zsh%20%7C%20Bash%20%7C%20Fish-blue.svg)]()
 [![Platform: Linux | macOS | WSL](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20WSL-black.svg)]()
 
-*Stop forgetting your complex one-liners, aliases, and shell recipes. Jump into your personal command palette with **`Ctrl + K`**.*
+*Stop memorizing obscure flags, complex one-liners, and piped recipes. Hit **`Ctrl + K`** and find what you need by intent.*
 
 <br/>
 
 ```text
-┌─ ⚡ ezysh ───────────────────────────────────────────────────────────────┐
-│                                                                 213/213│
-│                                           │                              │
-│ ❯ [Docker]   docker-clean-all             │   🏷  CATEGORY                │
-│   [Git]      case-git-undo-commit         │   Docker                     │
-│   [Network]  case-kill-port <port>        │                              │
-│   [Node]     node-clean-install           │   ⚡ COMMAND                  │
-│   [Database] prisma-studio                │   docker system prune -af    │
-│   [API]      api-post-json <url>          │   --volumes                  │
-│   [Linux]    disk-usage-top               │                              │
-│   [Forensics]case-proc-deleted-running    │   ℹ  DESCRIPTION              │
-│                                           │   Bebaskan puluhan GB disk   │
-│                                           │   dari cache & sampah docker │
-└───────────────────────────────────────────┴──────────────────────────────┘
+┌─ ⚡ ezysh ──────────────────────────────────────────────────────────────────┐
+│  kill port                                                         324/324 │
+│                                              │                              │
+│ ❯ [Network]  case-kill-port <port>           │   🏷  CATEGORY                │
+│              │ Paksa matikan proses di port  │   Network                    │
+│   [Network]  port-who <port>                 │                              │
+│              │ Cek aplikasi penahan port     │   ⚡ COMMAND                  │
+│   [Docker]   docker-clean-all                │   lsof -ti:<port> |          │
+│              │ Bebaskan puluhan GB disk      │   xargs kill -9              │
+│   [Git]      case-git-undo-commit            │                              │
+│              │ Batalkan commit terakhir      │   ℹ  DESCRIPTION              │
+│   [Node]     node-clean-install              │   Paksa matikan process yang │
+│              │ Nuke dependencies             │   menggunakan port tertentu  │
+│                                              │                              │
+│                                              │   💡 PARAMETER INPUT          │
+│                                              │   Press Enter to fill in     │
+│                                              │   <parameters>.              │
+└──────────────────────────────────────────────┴──────────────────────────────┘
 ```
 
 </div>
@@ -34,45 +38,49 @@
 
 ## 🌟 Why ezysh?
 
-Terminal productivity shouldn't mean memorizing hundreds of obscure flags and piped commands. `ezysh` turns your shell into a modern, aesthetic IDE-like command palette:
+Terminal productivity should not require memorizing hundreds of flags and syntax quirks. `ezysh` turns your shell into an IDE-like command palette:
 
-- **⚡ Sub-Millisecond Search**: Powered by `fzf` with zero latency.
-- **🏷 Category-First Filtering**: Type `docker`, `git`, `network`, `node`, `database`, `api`, or `linux` to filter instantly.
-- **🪄 Interactive Parameter Prompts**: Commands with `<port>`, `<url>`, `<branch>`, or `<name>` prompt you for input before injecting into the shell.
-- **🔄 Zero-Config Shell Auto-Sync**: Automatically reads and indexes all aliases and comments from your `~/.zshrc`, `~/.bashrc`, or Fish configs.
-- **🛡 Safe Injection**: Injects commands directly into your prompt buffer so you can inspect/tweak them before hitting `Enter`.
-- **🌸 Deep Space Palette**: Clean typography, pixel-perfect borders, and syntax-safe preview cards.
-- **➕ Quick Add Snippets**: Add new personal commands on the fly via `ezy --add`.
+- **🎯 Search by Intent**: Forgot the syntax? Search what you want to accomplish (`kill port`, `undo commit`, `nuke node_modules`, `clean disk`). `ezysh` indexes names, descriptions, and commands simultaneously.
+- **⚡ Zero Overhead (Pure Native)**: Built with POSIX Bash and native AWK. Sub-2ms preview rendering. Zero Python runtimes, zero background daemons, zero compiled binaries.
+- **🪄 Interactive Parameter Prompts**: Commands with `<port>`, `<container>`, `<url>`, or `<branch>` prompt you for input before injecting into the shell.
+- **🛡 Safe Shell Injection**: Injects selected commands into your prompt buffer so you can review and tweak them before hitting `Enter`.
+- **➕ Save What You Forget**: Add personal one-liners on the fly via `ezy -a`. Stored in standard TSV, searchable instantly.
+- **🎨 Deep Space & Themeable**: Clean typography, sharp borders, and extensible theme overrides via `~/.config/ezysh/theme.sh`.
 
 ---
 
 ## 🌐 Compatibility Matrix
 
-`ezysh` is designed to be ultra-lightweight and run seamlessly anywhere a POSIX shell and terminal exist:
+`ezysh` is designed to be lightweight and run anywhere a POSIX shell and terminal exist:
 
 | Layer | Supported Environments |
 | :--- | :--- |
-| **Operating Systems** | • **Linux**: Fedora, Ubuntu, Debian, Arch, Manjaro, Pop!_OS, RHEL/CentOS, Alpine, NixOS<br/>• **macOS**: Apple Silicon (M1/M2/M3/M4) & Intel (Sonoma, Ventura, Monterey)<br/>• **Windows**: Windows Subsystem for Linux (WSL / WSL2)<br/>• **BSD**: FreeBSD, OpenBSD |
-| **Shells** | • **Zsh** (Vanilla, Oh-My-Zsh, Zinit, Sheldon, Antigen — Emacs & Vi mode)<br/>• **Bash** (4.0+ with `bind -x`)<br/>• **Fish** (3.0+ native) |
-| **Terminals** | Ghostty, Kitty, Alacritty, WezTerm, iTerm2, Windows Terminal, GNOME Terminal, Konsole, Foot, Rio |
+| **Operating Systems** | • **Linux**: Fedora, Ubuntu, Debian, Arch, Manjaro, Pop!_OS, RHEL/CentOS, Alpine, Void, NixOS<br/>• **macOS**: Apple Silicon (M1–M4) & Intel<br/>• **Windows**: Windows Subsystem for Linux (WSL / WSL2)<br/>• **BSD**: FreeBSD, OpenBSD |
+| **Shells** | • **Zsh** (Vanilla, Oh-My-Zsh, Zinit, Sheldon, Antigen)<br/>• **Bash** (4.0+ with `bind -x`)<br/>• **Fish** (3.0+ native) |
+| **Terminals** | Ghostty, Kitty, Alacritty, WezTerm, iTerm2, Windows Terminal, GNOME Terminal, Konsole, Foot |
 | **Multiplexers** | Zellij, tmux, GNU Screen |
-| **Architectures** | `x86_64` (Intel/AMD), `arm64` / `aarch64` (Apple Silicon, Raspberry Pi, AWS Graviton) |
+| **Architectures** | `x86_64` (Intel/AMD), `arm64` / `aarch64` (Apple Silicon, Raspberry Pi, Graviton) |
 
 ---
 
-## 📦 Curated Built-in Suites (210+ Production Recipes)
+## 📦 Curated Built-in Suites (300+ Production Recipes)
+
+Curated defaults live in `share/defaults.tsv` as clean data, separated from execution logic:
 
 | Category | Highlights & Scenarios |
 | :--- | :--- |
-| **🐳 `[Docker]`** | System prune, bulk stop/rm, instant container shell, live resource stats, inspect IP |
-| **📦 `[Git]`** | Undo last commit, emergency workspace discard, search history by code changes, prune merged branches |
-| **🔌 `[Network]`** | Port killing, DNS hierarchy trace, multi-resolver benchmark, SSL expiry check, live traffic sniffing |
-| **🟢 `[Node]`** | Nuke & reinstall dependencies, kill hung dev servers, detect unused packages, outdated check |
-| **🗄️ `[Database]`** | Prisma studio, migrate, db push, PostgreSQL dump/restore, Redis cache flush |
-| **🌐 `[API]`** | Pretty JSON POST testing, Bearer token requests, TTFB latency measurement |
-| **🔍 `[Forensics]`** | Fileless malware detection, deleted running binaries, IoC extraction, crontab persistence audit |
-| **🐧 `[Linux]`** | Disk hogs locator, permission recovery, systemd error filters, clean config reader, live logs |
-| **🎯 `[Cases]`** | End-to-end multi-pipe recipes solving complex real-world workflows |
+| **🐳 `[Docker]`** | Service controls, auto-restart policies, system prune, instant container shell, compose lifecycle |
+| **📦 `[Git]`** | Undo last commit, stash salvage, emergency discard, code diff search, prune merged branches |
+| **🔌 `[Network]`** | Port killing, reverse SSH tunnels, SOCKS proxy, SSL expiry check, live traffic sniffing |
+| **🟢 `[Node]`** | Nuke dependencies, kill hung dev servers, unused package audit, outdated check |
+| **🦀 `[Rust]`** | Fast cargo type-check, clippy pedantic audit, release build, target directory cleanup |
+| **🐹 `[Go]`** | Vendor sync, race detection, cross-compilation standalone binary, hot reload |
+| **🐍 `[Python]`** | Virtual environments, fast ruff linting, test coverage, ASGI FastAPI dev server |
+| **🗄️ `[Database]`** | Prisma studio/push, PostgreSQL dump & restore, Redis cache flushes |
+| **🔍 `[Forensics]`** | Fileless malware audit, deleted running binaries, IoC extraction, persistence check |
+| **🚑 `[Recovery]`** | Rescue deleted files from `/proc/*/fd`, Ext4 superblock restore, Btrfs salvage, `ddrescue` |
+| **🐧 `[Linux]`** | Disk space hogs, service health, clean config views, journald filters |
+| **🎯 `[Cases]`** | Multi-pipe workflows solving complex real-world developer edge cases |
 
 ---
 
@@ -87,17 +95,11 @@ curl -fsSL https://raw.githubusercontent.com/intuezy/ezysh/main/install.sh | bas
 
 ### 2. Manual Installation
 
-#### Zsh (Default / Oh-My-Zsh / Zinit)
+#### Zsh
 ```bash
 git clone https://github.com/intuezy/ezysh.git ~/.ezysh
 echo "source ~/.ezysh/ezysh.plugin.zsh" >> ~/.zshrc
 source ~/.zshrc
-```
-
-*Using Oh-My-Zsh custom plugins:*
-```bash
-git clone https://github.com/intuezy/ezysh.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/ezysh
-# Add 'ezysh' to plugins=(... ezysh) in your ~/.zshrc
 ```
 
 #### Bash
@@ -119,43 +121,49 @@ ln -s ~/.ezysh/ezysh.fish ~/.config/fish/conf.d/ezysh.fish
 
 | Shortcut / Command | Action |
 | :--- | :--- |
-| **`Ctrl + K`** | Open `ezysh` interactive command palette |
-| **`Ctrl + Space`** | Alternative keybinding to launch palette |
-| **`ezy` / **`ezysh`** | Launch palette from shell prompt |
-| **`ezy --add <name> <cmd> <desc> [cat]`** | Quick add a new command snippet |
-| **`ezy --sync`** | Force re-index shell aliases & defaults |
-| **`ezy --edit`** | Open `custom.tsv` in your default `$EDITOR` |
-| **`ezy --list`** | Print entire commands database to stdout |
+| **`Ctrl + K`** | Open interactive command palette |
+| **`Ctrl + Space`** | Alternative keybinding to open palette |
+| **`ezy` / `ezysh`** | Launch palette from shell prompt |
+| **`ezy -a <name> <cmd> <desc> [cat]`** | Quick add a new command snippet |
+| **`ezy -s` / `ezysh --sync`** | Re-index defaults and custom commands |
+| **`ezy -e` / `ezysh --edit`** | Open `custom.tsv` in default `$EDITOR` |
+| **`ezy -l` / `ezysh --list`** | Print entire commands database to stdout |
 
 ---
 
-## 💡 Adding Custom Commands
+## 💡 Adding Custom Commands ("Save What You Forget")
 
 ### Via CLI:
 ```bash
-ezy --add "deploy-prod" "./deploy.sh --prod" "Deploy main branch to production" "DevOps"
+ezy -a "deploy-prod" "./deploy.sh --prod" "Deploy main branch to production" "DevOps"
 ```
 
 ### Via Config File (`~/.config/ezysh/custom.tsv`):
 ```tsv
 deploy-prod	./deploy.sh --prod	[DevOps] Deploy main branch to production
-my-script <target>	python3 script.py --target <target>	[Python] Run automation script
+suhu-cek	suhu	[Hardware] Cek suhu laptop CPU & SSD
 ```
-*Run `ezy --sync` after editing.*
+Custom commands are re-indexed instantly.
 
 ---
 
 ## 📋 Requirements
-- `fzf` (Fuzzy finder)
-- `zsh`, `bash`, or `fish`
+
+- **`fzf`** (Command-line fuzzy finder)
+- **`bash`** (4.0+ for launcher runtime)
+- **`zsh`**, **`bash`**, or **`fish`** (Your active interactive shell)
+
+*Zero Python, Node.js, or external compiled dependencies required.*
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Whether you'd like to propose a new command recipe, fix a bug, or add shell integrations:
+Contributions are welcome. Adding a new command is as simple as adding a line to `share/defaults.tsv`:
+
 1. Check out our **[Contributing Guidelines](CONTRIBUTING.md)**.
-2. Propose new command recipes using our **[Command Proposal Template](https://github.com/intuezy/ezysh/issues/new?template=command_proposal.md)**.
+2. Ensure automated tests pass: `bash ./tests/test_ezysh.sh`.
+3. Open a Pull Request.
 
 ---
 

@@ -35,7 +35,7 @@ We maintain a high bar for built-in default commands:
    cd ezysh
    ```
 
-2. **Make your changes** in `bin/ezysh` or plugin files.
+2. **Add or edit recipes** in `share/defaults.tsv` (or core code in `bin/ezysh`).
 
 3. **Run the automated test suite**:
    ```bash
